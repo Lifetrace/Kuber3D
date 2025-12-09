@@ -22,3 +22,33 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java / Maven / Gradle
+desktop-java/target/
+desktop-java/build/
+*.log
+
+# C++
+cpp-proto/build/
+cpp-proto/cmake-build-*/
+
+# Node/Web (если появится npm)
+node_modules/
+dist/
+
+# Python (если будете что-то пробовать)
+__pycache__/
+*.pyc
+.venv/
+
+# Сервисные файлы ОС
+.DS_Store
+Thumbs.db
+
+# Office временные файлы
+~$*.docx
+~$*.pptx
