@@ -11,8 +11,10 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_INSTALL OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(include/OpenGL_includes/glfw)
-target_link_libraries(${PROJECT_NAME} glfw)
+set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/OpenGL_includes)
 
-add_subdirectory(include/OpenGL_includes/glad)
-target_link_libraries(${PROJECT_NAME} glad)
+foreach(dep glad glfw)
+    add_subdirectory(${THIRD_PARTY_DIR}/${dep})
+endforeach()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE glad glfw)

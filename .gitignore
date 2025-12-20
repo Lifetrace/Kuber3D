@@ -52,3 +52,9 @@ Thumbs.db
 # Office временные файлы
 ~$*.docx
 ~$*.pptx
+
+# CMake build output
+/build/
+build/
+**/build/
+**/cmake-build-*/
