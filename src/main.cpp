@@ -34,7 +34,7 @@ const char* fragmentShaderSource = R"(
 in vec3 ourColor;
 out vec4 FragColor;
 
-uniform int uIsPoint; // 1 = рисуем точки (круглые), 0 = рисуем линии (обычные)
+uniform int uIsPoint; 
 
 void main()
 {
