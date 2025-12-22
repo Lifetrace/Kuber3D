@@ -5,7 +5,7 @@
 
 GLFWwindow* Engine::Window::window = nullptr;
 
-void Engine::Window::Init(int width, int height, const char* title){
+void Engine::Window::Init(int width, int height, const char* title, const float color[4]){
 
     if (!glfwInit()){
         std::cout << "Can`t initializate GLFW!" << std::endl;
@@ -15,16 +15,16 @@ void Engine::Window::Init(int width, int height, const char* title){
     
     if (!window){
         std::cout << "Can`t create window, or window is NULL" << std::endl;
-        glfwTerminate();
+        Window::Terminate();
     }
     
     glfwMakeContextCurrent(window);
 
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         std::cout << "Can`t load GLAD" << std::endl;
-        glfwTerminate();
+        Window::Terminate();
     }
-
+    glClearColor(color[0], color[1], color[2], color[3]);
     glViewport(0, 0, width, height);
 }
 
@@ -36,6 +36,13 @@ void Engine::Window::SwapBuffers(GLFWwindow* window){
     glfwSwapBuffers(window);
 }
 
-void Engine::Events::PollEvents(){
-    glfwPollEvents();
+void Engine::Window::ClearScreen(GLbitfield mask){
+    glClear(mask);
+}
+
+void Engine::Window::Terminate(){
+    if(window){
+        glfwDestroyWindow(window);
+    }
+    glfwTerminate();
 }
