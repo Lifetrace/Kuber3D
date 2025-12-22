@@ -4,7 +4,9 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(PROJECT_NAME Kuber)
 project(${PROJECT_NAME}) 
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/Engine.cpp)
+
+target_include_directories(Kuber PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
