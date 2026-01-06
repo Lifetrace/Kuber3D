@@ -19,7 +19,7 @@ void Engine::Window::Init(int width, int height, const char* title, const float 
     }
     
     glfwMakeContextCurrent(window);
-
+    
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         std::cout << "Can`t load GLAD" << std::endl;
         Window::Terminate();

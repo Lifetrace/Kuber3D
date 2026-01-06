@@ -7,7 +7,7 @@
 const float color[4] = {0.15f, 0.15f, 0.15f, 1.0f};
 
 int main(){
-    Engine::Window::Init(800, 600, "Window", color);
+    Engine::Window::Init(1280, 720, "Window", color);
     
     while (!Engine::Window::isShouldClose(Engine::Window::window))
     {
@@ -16,7 +16,7 @@ int main(){
         Engine::Window::SwapBuffers(Engine::Window::window);
         Engine::Events::PollEvents();
     }
-
+    
     Engine::Window::Terminate();
     return 0;
 }
