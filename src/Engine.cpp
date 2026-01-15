@@ -46,3 +46,7 @@ void Engine::Window::Terminate(){
     }
     glfwTerminate();
 }
+
+float Engine::Window::GetTime(){
+    return (float)glfwGetTime();
+}

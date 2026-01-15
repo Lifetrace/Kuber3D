@@ -11,5 +11,6 @@ namespace Engine {
         static bool isShouldClose(GLFWwindow* window);
         static void SwapBuffers(GLFWwindow* window);
         static void ClearScreen(GLbitfield mask);
+        static float GetTime();
     };
 }
