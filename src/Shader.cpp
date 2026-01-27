@@ -1,133 +1,82 @@
 #include "Shader.hpp"
 
-#include <glad/glad.h>
+#include <exception>
 #include <fstream>
-#include <sstream>
 #include <iostream>
-#include <utility>
+#include <sstream>
 
-Engine::Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) {
-    const std::string vsrc = readFile(vertexPath);
-    const std::string fsrc = readFile(fragmentPath);
 
-    unsigned int vs = compileStage(GL_VERTEX_SHADER, vsrc, vertexPath);
-    unsigned int fs = compileStage(GL_FRAGMENT_SHADER, fsrc, fragmentPath);
+Engine::Shader::Shader(uint id) : id(id){
 
-    ID = linkProgram(vs, fs);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
 }
 
-Engine::Shader::Shader(Shader&& other) noexcept {
-    ID = other.ID;
-    _uniformCache = std::move(other._uniformCache);
-    other.ID = 0;
-}
-
-Engine::Shader& Engine::Shader::operator=(Shader&& other) noexcept {
-    if (this == &other) return *this;
-
-    if (ID) glDeleteProgram(ID);
-
-    ID = other.ID;
-    _uniformCache = std::move(other._uniformCache);
-    other.ID = 0;
-    return *this;
-}
-
-Engine::Shader::~Shader() {
-    if (ID) glDeleteProgram(ID);
-}
-
-void Engine::Shader::use() const {
-    glUseProgram(ID);
-}
-
-std::string Engine::Shader::readFile(const std::string& path) {
-    std::ifstream file(path, std::ios::in);
-    if (!file.is_open()) {
-        throw std::runtime_error("Shader file not found: " + path);
-    }
-    std::stringstream ss;
-    ss << file.rdbuf();
-    return ss.str();
-}
-
-unsigned int Engine::Shader::compileStage(unsigned int type, const std::string& source, const std::string& debugName) {
-    unsigned int shader = glCreateShader(type);
-    const char* src = source.c_str();
-    glShaderSource(shader, 1, &src, nullptr);
-    glCompileShader(shader);
-
-    int ok = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
-    if (!ok) {
-        int len = 0;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
-        std::string log(len, '\0');
-        glGetShaderInfoLog(shader, len, nullptr, log.data());
-
-        std::cerr << "Shader compile error (" << debugName << ")\n" << log << "\n";
-        glDeleteShader(shader);
-        throw std::runtime_error("Shader compilation failed: " + debugName);
-    }
-    return shader;
-}
-
-unsigned int Engine::Shader::linkProgram(unsigned int vs, unsigned int fs) {
-    unsigned int program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-
-    int ok = 0;
-    glGetProgramiv(program, GL_LINK_STATUS, &ok);
-    if (!ok) {
-        int len = 0;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
-        std::string log(len, '\0');
-        glGetProgramInfoLog(program, len, nullptr, log.data());
-
-        std::cerr << "Program link error:\n" << log << "\n";
-        glDeleteProgram(program);
-        throw std::runtime_error("Program linking failed");
-    }
-    return program;
-}
-
-int Engine::Shader::getLocation(const std::string& name) const {
-    auto it = _uniformCache.find(name);
-    if (it != _uniformCache.end()) return it->second;
-
-    int loc = glGetUniformLocation(ID, name.c_str());
-    _uniformCache[name] = loc;
+GLint Engine::Shader::getUniformLocation(const std::string name)
+    {
+    auto it = m_cache.find(name);
+    if (it != m_cache.end())
+        return it->second;
+    GLint loc = glGetUniformLocation(id, name.c_str());
+    m_cache[name] = loc;
     return loc;
 }
 
-void Engine::Shader::setBool(const std::string& name, bool value) const {
-    glUniform1i(getLocation(name), (int)value);
+Engine::Shader::~Shader(){
+    glDeleteProgram(id);
 }
-void Engine::Shader::setInt(const std::string& name, int value) const {
-    glUniform1i(getLocation(name), value);
-}
-void Engine::Shader::setFloat(const std::string& name, float value) const {
-    glUniform1f(getLocation(name), value);
+void Engine::Shader::setInt(const std::string& name, int value){
+
+        glUseProgram(id);
+
+        GLint loc = getUniformLocation(name);
+        if (loc == -1) return; 
+        glUniform1i(loc, value);
 }
 
-void Engine::Shader::setVec2(const std::string& name, const glm::vec2& v) const {
-    glUniform2f(getLocation(name), v.x, v.y);
-}
-void Engine::Shader::setVec3(const std::string& name, const glm::vec3& v) const {
-    glUniform3f(getLocation(name), v.x, v.y, v.z);
-}
-void Engine::Shader::setVec4(const std::string& name, const glm::vec4& v) const {
-    glUniform4f(getLocation(name), v.x, v.y, v.z, v.w);
+void Engine::Shader::SetMat4(const std::string& name, const glm::mat4& m){
+    glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, &m[0][0]);
 }
 
-void Engine::Shader::setMat3(const std::string& name, const glm::mat3& m) const {
-    glUniformMatrix3fv(getLocation(name), 1, GL_FALSE, &m[0][0]);
+void Engine::Shader::use(){
+    glUseProgram(id);
 }
-void Engine::Shader::setMat4(const std::string& name, const glm::mat4& m) const {
-    glUniformMatrix4fv(getLocation(name), 1, GL_FALSE, &m[0][0]);
+std::string Engine::ReadTextFile(std::string Path){
+    std::ifstream file(Path, std::ios::in);
+    if(!file.is_open())
+    throw std::runtime_error("Engine::ReadTextFile: cannot open file: " + Path);
+
+    std::ostringstream ss;
+    ss << file.rdbuf();
+
+    if (!file.good() && !file.eof())
+        throw std::runtime_error("Engine::ReadTextFile: read error: " + Path);
+
+    return ss.str();
 }
+
+Engine::Shader* Engine::load_shader(std::string vPath, std::string fPath)
+{
+    std::string vSrc = Engine::ReadTextFile(vPath);
+    std::string fSrc = Engine::ReadTextFile(fPath);
+
+    const char* vShaderCode = vSrc.c_str();
+    const char* fShaderCode = fSrc.c_str();
+
+    GLuint v = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(v, 1, &vShaderCode, nullptr);
+    glCompileShader(v);
+
+    GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(f, 1, &fShaderCode, nullptr);
+    glCompileShader(f);
+
+    GLuint pr = glCreateProgram();
+    glAttachShader(pr, v);
+    glAttachShader(pr, f);
+    glLinkProgram(pr);
+
+    glDeleteShader(v);
+    glDeleteShader(f);
+
+    return new Engine::Shader(pr);
+}
+

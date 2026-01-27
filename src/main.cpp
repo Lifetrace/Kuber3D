@@ -1,111 +1,508 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include "Engine.hpp"
+#include <iostream>
+#include "Window.hpp"
 #include "Events.hpp"
 #include "Shader.hpp"
-#include "TetrahedronWire.hpp"
-#include <iostream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp> 
-#include <glm/gtc/type_ptr.hpp>
-#include <chrono>
+#include "Buffers.hpp"
+#include "Camera.hpp"
+#include "Ray.hpp"
+#include "Grid.hpp"
+#include "Cross.hpp"
+#include <unordered_map>
+#include <algorithm>
+#include <functional>
 
-using Clock =  std::chrono::steady_clock;
+bool IsEditMode = false;
+std::unordered_map<int, glm::vec4> selectedPointsByColor; 
+std::unordered_map<int, glm::vec3> selectedPointsByCoords; 
+std::vector<int> selectedOrder;
+Engine::Camera cam;
 
-const float color[4] = {0.15f, 0.15f, 0.15f, 1.0f};
-int width = 1280;
-int height = 720;
+void SetEditMode();
+
+void Select(int index);
+
+void DeSelect(int index);
+
+void DesAllSelected();
+
+void DelAllSelected();
+
+void ToggleSelect(int index);
+
+int PickPointByPixels(const std::vector<glm::vec3>& positions, double mx, double my, const glm::mat4& view, const glm::mat4& proj, int w, int h, float radiusPx = 10.0f);
+
+void CutLine(float p, float q);
+
+int IndexByPos(const glm::vec3& pos);
+
+static void SortUnique(std::vector<int>& v);
+
+bool RayPlane(const glm::vec3& O, const glm::vec3& D, const glm::vec3& A, const glm::vec3& n, glm::vec3& hit);
+
+bool ExtendUsingCutLine();
 
 int main(){
-    Engine::Window::Init(width, height, "Window", color);
-    glfwSwapInterval(1);
-
-    Engine::Events::Get().Init(Engine::Window::window);
-    auto& event = Engine::Events::Get();
-
-    Engine::Shader shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-    Engine::TetrahedronWire tet;
-    tet.Init(0.6f);
-
-
-    float s = 1.0f;
-
-    glEnable(GL_DEPTH_TEST);
-    float angleX = 0.0f;
-    float angleY = 0.0f;
-
-    auto lastTime = Clock::now();
-    int frames = 0;
-
-    while (!Engine::Window::isShouldClose(Engine::Window::window))
-    {
-        Engine::Window::ClearScreen(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        Engine::Events::PollEvents();
-        Engine::Events::Get().Update();
-
-        shader.use();
-        shader.setFloat("uTime", Engine::Window::GetTime());
-
-        if (Engine::Events::Get().IsKeyPressed(GLFW_KEY_ESCAPE)){
-            glfwSetWindowShouldClose(Engine::Window::window, true);
-        }
-
-        glm::mat4 view = glm::lookAt(
-            glm::vec3(0.0f, 0.0f, 3.0f),
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 1.0f, 0.0f) 
-        );
-
-        glm::mat4 model(1.0f);
-
-        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_RIGHT)) angleX += 0.03f;
-        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_LEFT))  angleX -= 0.03f;
-        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_UP)) angleY += 0.03f;
-        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_DOWN))  angleY -= 0.03f;
-        if (Engine::Events::Get().IsKeyPressed(GLFW_KEY_R)){  angleX = 0.0f; angleY = 0.0f;  }
-        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_H))  s += 0.05f;
-        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_G) && s >= 0.1f)  s -= 0.05f;
-
-        auto& e = Engine::Events::Get();
-
-        if (e.IsMousePressed(GLFW_MOUSE_BUTTON_RIGHT))
-            glfwSetInputMode(Engine::Window::window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-        if (e.IsMouseReleased(GLFW_MOUSE_BUTTON_RIGHT))
-            glfwSetInputMode(Engine::Window::window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-        if (e.IsMouseDown(GLFW_MOUSE_BUTTON_RIGHT)) {
-            angleX += (float)e.MouseDX() * 0.003f;
-            angleY -= (float)e.MouseDY() * 0.003f;
-        }
-
-        model = glm::scale(model, glm::vec3(s, s, s));
-
-        model = glm::rotate(model, angleX, glm::vec3(0,1,0));
-
-        model = glm::rotate(model, angleY, glm::vec3(1,0,0));
-        
-        float aspect = (float)width / (float)height;
-        
-        glm::mat4 proj = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 100.0f);
-        glm::mat4 mvp = proj * view * model;
-        
-        tet.Draw(shader, mvp);
-
-        frames++;
-        auto now = Clock::now();
-        std::chrono::duration<double> elapsed = now - lastTime;
-
-        if (elapsed.count() >= 1.0) {
-            double fps = frames / elapsed.count();
-            std::cout << "FPS: " << fps << "\n";
-            frames = 0;
-            lastTime = now;
-        }
-
-        Engine::Window::SwapBuffers(Engine::Window::window);
+    if(Engine::Window::Init(1280, 720, "Program") != 0){
+        return -1;
     }
-    tet.Destroy();
+
+    Engine::Events::initialize();
+
+    Engine::Shader* shader = Engine::load_shader("assets/basic.vert", "assets/basic.frag");
+
+    Engine::Buffers::Init();
+
+    Engine::Grid::Init(1.0f, 50); 
+
+    glm::mat4 model(1.0f);
+
+    Engine::Buffers::AddPoint(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f);
+    Engine::Buffers::AddPoint(0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+    Engine::Buffers::AddPoint(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+
+    
+    while(!Engine::Window::isShouldClose(Engine::Window::GetWin())){
+        glClear(GL_COLOR_BUFFER_BIT);
+        Engine::Events::PollEvents();
+
+        int w, h;
+
+        glfwGetFramebufferSize(Engine::Window::GetWin(), &w, &h);
+        float aspect = (h == 0) ? 1.0f : (float)w / (float)h;
+
+        glViewport(0,0,w,h);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if (Engine::Events::clicked(GLFW_MOUSE_BUTTON_LEFT)) {
+            cam.yaw   += Engine::Events::deltaX * 0.007f;
+            cam.pitch -= Engine::Events::deltaY * 0.007f;
+            cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
+        }   
+
+        if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode) {
+            if (selectedOrder.size() != 3) continue; 
+            int i0 = selectedOrder[0];
+            int i1 = selectedOrder[1];
+            int i2 = selectedOrder[2];
+
+            glm::vec3 A = Engine::Buffers::positions[i0];
+            glm::vec3 B = Engine::Buffers::positions[i1];
+            glm::vec3 C = Engine::Buffers::positions[i2];
+
+            glm::vec3 n = glm::cross(B - A, C - A);
+            float nn = glm::length(n);
+            if (nn < 1e-6f) continue;
+            n /= nn;
+
+            double mx = Engine::Events::x;
+            double my = Engine::Events::y;
+
+            glm::mat4 view = cam.view();
+            glm::mat4 proj = cam.proj((float)w / (float)h);
+
+            glm::vec2 ndc = Engine::MouseToNDC(mx, my, w, h);
+            Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, proj, view);
+
+            glm::vec3 hit;
+            if (!RayPlane(ray.origin, ray.dir, A, n, hit)) continue;
+
+            Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, 1.0f, 1.0f, 1.0f, 1.0f);
+            Engine::Buffers::Update();
+        }
+
+
+        //DeletePoints
+        if(Engine::Events::jPressed(GLFW_KEY_DELETE) && IsEditMode){
+            DelAllSelected();
+        }
+
+        //ConnectPoints
+        if(Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && selectedOrder.size() == 2){
+            Engine::Buffers::ConnectPointsLine(selectedOrder[0], selectedOrder[1]);
+        }
+        
+        //CutPoints
+        if(Engine::Events::jPressed(GLFW_KEY_T) && IsEditMode && selectedOrder.size() == 2){
+            CutLine(2.0f, 3.0f);
+        }
+
+        //Tab
+        if(Engine::Events::jPressed(GLFW_KEY_TAB)){
+            SetEditMode();
+        }
+
+        if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode) {
+            ExtendUsingCutLine();
+        }
+
+        // Navigation
+        if (Engine::Events::jclicked(GLFW_MOUSE_BUTTON_LEFT) && IsEditMode){
+            if (!Engine::Events::Pressed(GLFW_KEY_LEFT_SHIFT))
+            DesAllSelected();
+
+            double mx = Engine::Events::x;
+            double my = Engine::Events::y;
+
+            glm::vec2 ndc = Engine::MouseToNDC(mx, my, w, h);
+
+            glm::mat4 view = cam.view();
+            glm::mat4 proj = cam.proj((float)w / (float)h);
+
+            Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, proj, view);
+
+            int idx = PickPointByPixels(Engine::Buffers::positions, mx, my, view, proj, w, h, 10.0f);
+            if (idx != -1) {
+                ToggleSelect(idx);
+            }
+        }
+
+        //Shader Use and Set Matrixes
+        shader->use();
+        shader->SetMat4("uModel", model);
+        shader->SetMat4("uView", cam.view());
+        shader->SetMat4("uProj", cam.proj(aspect));
+
+        //Color Selected Points
+        for (const auto& [index, col] : selectedPointsByColor){
+            Engine::Buffers::ChangeColor(index, 0.5f, 0.5f, 1.0f, 1.0f);
+        }
+
+        //Defence
+        if (Engine::Buffers::positions.size() < 2)
+        Engine::Buffers::lineIndices.clear();
+
+        //PointDraw
+        shader->setInt("uIsPoints", 1);
+        Engine::Buffers::DrawPoints();
+
+        //LineDraw
+        shader->setInt("uIsPoints", 0);
+        Engine::Buffers::DrawLines();
+        
+        //<--Grid Draw
+        glDepthMask(GL_FALSE);
+        Engine::Grid::Draw();
+        glDepthMask(GL_TRUE);   
+
+        //Window Buffers
+        Engine::Window::SwapBuffers(Engine::Window::GetWin());
+
+        //Logs
+        //
+        //
+    }
+
+    Engine::Buffers::Destroy();
+
     Engine::Window::Terminate();
     return 0;
 }
+
+void SetEditMode(){
+    if(!IsEditMode){
+        IsEditMode = true;
+        glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
+    } else{
+        IsEditMode = false;
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    }
+}
+
+void Select(int index){
+    if (index < 0 || index >= (int)Engine::Buffers::positions.size()) return;
+    if (selectedPointsByColor.contains(index)) return;
+
+    selectedPointsByColor.emplace(index, Engine::Buffers::colors[index]);
+    selectedPointsByCoords.emplace(index, Engine::Buffers::positions[index]);
+    selectedOrder.push_back(index);
+}
+
+void DeSelect(int index){
+    if (index < 0 || index >= (int)Engine::Buffers::positions.size()) return;
+
+    auto it = selectedPointsByColor.find(index);
+    if (it != selectedPointsByColor.end()) {
+        const glm::vec4& c = it->second;
+        Engine::Buffers::ChangeColor(index, c.r, c.g, c.b, c.a);
+        selectedPointsByColor.erase(it);
+    }
+
+    selectedPointsByCoords.erase(index);
+
+    selectedOrder.erase(
+        std::remove(selectedOrder.begin(), selectedOrder.end(), index),
+        selectedOrder.end()
+    );
+}
+
+void DesAllSelected(){
+    for (auto& [index, c] : selectedPointsByColor){
+        Engine::Buffers::ChangeColor(index, c.r, c.g, c.b, c.a);
+    }
+
+    selectedPointsByCoords.clear();
+    selectedPointsByColor.clear();
+    selectedOrder.clear();
+}
+
+void DelAllSelected(){
+    std::vector<int> selectedIdx = selectedOrder;   
+    SortUnique(selectedIdx);
+
+    if (selectedIdx.empty()) return;
+
+    const int n = (int)Engine::Buffers::positions.size();
+
+    std::vector<char> removed(n, 0);
+    for (int idx : selectedIdx) {
+        if (idx >= 0 && idx < n) removed[idx] = 1;
+    }
+
+    std::vector<int> mapOldToNew(n, -1);
+    int newN = 0;
+    for (int i = 0; i < n; i++) {
+        if (!removed[i]) mapOldToNew[i] = newN++;
+    }
+
+    std::vector<glm::vec3> newPos; newPos.reserve(newN);
+    std::vector<glm::vec4> newCol; newCol.reserve(newN);
+
+    for (int i = 0; i < n; i++) {
+        if (!removed[i]) {
+            newPos.push_back(Engine::Buffers::positions[i]);
+            newCol.push_back(Engine::Buffers::colors[i]);
+        }
+    }
+
+    Engine::Buffers::positions = std::move(newPos);
+    Engine::Buffers::colors    = std::move(newCol);
+
+    std::vector<GLuint> newLines;
+    newLines.reserve(Engine::Buffers::lineIndices.size());
+
+    for (size_t i = 0; i + 1 < Engine::Buffers::lineIndices.size(); i += 2) {
+        int a = (int)Engine::Buffers::lineIndices[i];
+        int b = (int)Engine::Buffers::lineIndices[i + 1];
+
+        if (a < 0 || b < 0 || a >= n || b >= n) continue;
+        if (removed[a] || removed[b]) continue;
+
+        newLines.push_back((GLuint)mapOldToNew[a]);
+        newLines.push_back((GLuint)mapOldToNew[b]);
+    }
+
+    Engine::Buffers::lineIndices = std::move(newLines);
+
+    if ((int)Engine::Buffers::connectedPoints.size() == n) {
+        std::vector<std::vector<GLuint>> newAdj;
+        newAdj.resize(newN);
+
+        for (int i = 0; i < n; i++) {
+            if (removed[i]) continue;
+            const int ni = mapOldToNew[i];
+
+            for (GLuint nb : Engine::Buffers::connectedPoints[i]) {
+                int j = (int)nb;
+                if (j < 0 || j >= n) continue;
+                if (removed[j]) continue;
+
+                const GLuint nj = (GLuint)mapOldToNew[j];
+
+                auto& row = newAdj[ni];
+                if (std::find(row.begin(), row.end(), nj) == row.end())
+                    row.push_back(nj);
+            }
+        }
+
+        Engine::Buffers::connectedPoints = std::move(newAdj);
+    }
+
+    selectedOrder.clear();
+    selectedPointsByColor.clear(); 
+    selectedPointsByCoords.clear();
+
+    Engine::Buffers::Update();
+}
+
+void ToggleSelect(int index){
+    if (selectedPointsByColor.contains(index)) DeSelect(index);
+    else Select(index);
+}
+
+int PickPointByPixels(const std::vector<glm::vec3>& positions, double mx, double my, const glm::mat4& view, const glm::mat4& proj, int w, int h, float radiusPx) {
+    int best = -1;
+    float bestD2 = radiusPx * radiusPx;
+
+    glm::vec2 m((float)mx, (float)my);
+
+    for (int i = 0; i < (int)positions.size(); i++) {
+        glm::vec2 p;
+        if (!Engine::WorldToScreen(positions[i], view, proj, w, h, p)) continue;
+
+        glm::vec2 d = p - m;
+        float d2 = d.x * d.x + d.y * d.y;
+        if (d2 <= bestD2) {
+            bestD2 = d2;
+            best = i;
+        }
+    }
+    return best;
+}
+
+void CutLine(float p, float q){
+    if (selectedOrder.size() < 2) return;
+    if (q == 0) return;
+
+    Engine::Buffers::DisConnectPointsLine(selectedOrder[0], selectedOrder[1]);
+
+    float t = p/q;
+
+    const int a = selectedOrder[0];
+    const int b = selectedOrder[1];
+
+    Engine::Buffers::DisConnectPointsLine(a, b);
+
+    const glm::vec3 A = Engine::Buffers::positions[a];
+    const glm::vec3 B = Engine::Buffers::positions[b];
+
+    const glm::vec3 R = A + (B - A) * t;
+
+    Engine::Buffers::AddPoint(R.x, R.y, R.z, 1.0f, 1.0f, 1.0f, 1.0f);
+
+    const int newIndex = static_cast<int>(Engine::Buffers::positions.size()) - 1;
+    Engine::Buffers::ConnectPointsLine(a, newIndex);
+    Engine::Buffers::ConnectPointsLine(b, newIndex);
+}
+
+int IndexByPos(const glm::vec3& pos){
+    const float eps = 1e-5f;
+
+    for (int i = 0; i < (int)Engine::Buffers::positions.size(); ++i){
+        const glm::vec3& p = Engine::Buffers::positions[i];
+
+        if (fabs(p.x - pos.x) < eps && fabs(p.y - pos.y) < eps && fabs(p.z - pos.z) < eps){
+            return i;
+        }
+    }
+    return -1;
+}
+
+static void SortUnique(std::vector<int>& v) {
+    std::sort(v.begin(), v.end());
+    v.erase(std::unique(v.begin(), v.end()), v.end());
+}
+
+bool RayPlane(
+    const glm::vec3& O, const glm::vec3& D,
+    const glm::vec3& A, const glm::vec3& n,
+    glm::vec3& hit)
+{
+    float denom = glm::dot(n, D);
+    if (std::abs(denom) < 1e-6f) return false; 
+
+    float t = glm::dot(n, (A - O)) / denom;
+    if (t <= 0.0f) return false; 
+
+    hit = O + t * D;
+    return true;
+}
+
+bool ExtendUsingCutLine()
+{
+   
+    if (selectedOrder.size() != 3) return false;
+
+    int ia = selectedOrder[0];
+    int ib = selectedOrder[1];
+    int ic = selectedOrder[2];
+
+    if (ia==ib || ia==ic || ib==ic) return false;
+
+    glm::vec3 A = Engine::Buffers::positions[ia];
+    glm::vec3 B = Engine::Buffers::positions[ib];
+    glm::vec3 C = Engine::Buffers::positions[ic];
+
+    glm::vec3 u3 = B - A;
+    float ul = glm::length(u3);
+    if (ul < 1e-6f) return false;
+    u3 /= ul;
+
+    glm::vec3 n = glm::cross(B - A, C - A);
+    float nl = glm::length(n);
+    if (nl < 1e-6f) return false;
+    n /= nl;
+
+    glm::vec3 v3 = glm::normalize(glm::cross(n, u3));
+
+    auto To2 = [&](const glm::vec3& X)->glm::vec2{
+        glm::vec3 d = X - A;
+        return { glm::dot(d, u3), glm::dot(d, v3) };
+    };
+
+    glm::vec2 A2 = To2(A); 
+    glm::vec2 B2 = To2(B);
+    glm::vec2 O  = B2;  
+    glm::vec2 dir(1.0f, 0.0f);
+
+    Engine::Buffers::ConnectPointsLine(ia, ib);
+
+    int bestC=-1, bestD=-1;
+    float bestT=1e30f;
+    float bestU=0.0f;
+
+    auto& li = Engine::Buffers::lineIndices;
+    for (size_t i=0; i+1<li.size(); i+=2){
+        int cIdx = (int)li[i];
+        int dIdx = (int)li[i+1];
+
+        if ((cIdx==ia && dIdx==ib) || (cIdx==ib && dIdx==ia)) continue;
+        if (cIdx==ia || cIdx==ib || dIdx==ia || dIdx==ib) continue;
+
+        glm::vec3 C3 = Engine::Buffers::positions[cIdx];
+        glm::vec3 D3 = Engine::Buffers::positions[dIdx];
+
+        float dc = std::abs(glm::dot(n, (C3 - A)));
+        float dd = std::abs(glm::dot(n, (D3 - A)));
+        if (dc > 1e-3f || dd > 1e-3f) continue;
+
+        glm::vec2 C2 = To2(C3);
+        glm::vec2 D2 = To2(D3);
+
+        float t,u;
+        if (!Engine::Cross::RaySeg2D(O, dir, C2, D2, t, u)) continue;
+
+        if (t < bestT){
+            bestT = t;
+            bestU = u;
+            bestC = cIdx;
+            bestD = dIdx;
+        }
+    }
+
+    if (bestC == -1) return false;
+
+    auto saved = selectedOrder;
+    selectedOrder = {bestC, bestD};
+
+    float u = glm::clamp(bestU, 0.0f, 1.0f);
+    float q = 1000.0f;
+    float p = std::round(u*q);
+
+    int oldCount = (int)Engine::Buffers::positions.size();
+    CutLine(p, q);
+
+    selectedOrder = saved;
+
+    if ((int)Engine::Buffers::positions.size() == oldCount) return false;
+
+    int newIndex = (int)Engine::Buffers::positions.size() - 1;
+
+    Engine::Buffers::ConnectPointsLine(ib, newIndex);
+
+    Engine::Buffers::Update();
+    return true;
+}
+
+
+

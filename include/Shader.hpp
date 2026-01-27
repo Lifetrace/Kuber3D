@@ -1,44 +1,30 @@
 #pragma once
+
+#include "GLincs.hpp"
 #include <string>
+#include <glm/mat4x4.hpp>
 #include <unordered_map>
-#include <glm/glm.hpp>
+
+typedef unsigned int uint;
 
 namespace Engine{
-    class Shader {
+    class Shader{
     public:
-        unsigned int ID = 0;
+        uint id;
 
-        Shader() = default;
-        Shader(const std::string& vertexPath, const std::string& fragmentPath);
-
-        Shader(const Shader&) = delete;
-        Shader& operator=(const Shader&) = delete;
-
-        Shader(Shader&& other) noexcept;
-        Shader& operator=(Shader&& other) noexcept;
-
+        Shader(uint id);
         ~Shader();
 
-        void use() const;
+        void setInt(const std::string& name, int value);
+        void SetMat4(const std::string& name, const glm::mat4& m);
 
-        void setBool (const std::string& name, bool value) const;
-        void setInt  (const std::string& name, int value) const;
-        void setFloat(const std::string& name, float value) const;
-
-        void setVec2(const std::string& name, const glm::vec2& v) const;
-        void setVec3(const std::string& name, const glm::vec3& v) const;
-        void setVec4(const std::string& name, const glm::vec4& v) const;
-
-        void setMat3(const std::string& name, const glm::mat3& m) const;
-        void setMat4(const std::string& name, const glm::mat4& m) const;
+        void use();
 
     private:
-        mutable std::unordered_map<std::string, int> _uniformCache;
-
-        static std::string readFile(const std::string& path);
-        static unsigned int compileStage(unsigned int type, const std::string& source, const std::string& debugName);
-        static unsigned int linkProgram(unsigned int vs, unsigned int fs);
-
-        int getLocation(const std::string& name) const;
+        GLint getUniformLocation(const std::string name);
+        std::unordered_map<std::string, GLint> m_cache;
     };
+
+    Shader* load_shader(std::string vPath, std::string fPath);
+    std::string ReadTextFile(std::string Path);
 }
