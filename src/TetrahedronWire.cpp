@@ -3,16 +3,13 @@
 #include <glm/gtc/type_ptr.hpp>
 
 void Engine::TetrahedronWire::Init(float size) {
-    // 4 вершины тетраэдра (симметричный вариант)
-    // Можно любой, главное чтобы индексы рёбер были корректны.
     const float s = size;
 
     const float vertices[] = {
-        // x,   y,   z
-         0.0f,  s,   0.0f,         // 0 (верх)
-        -s,   -s,   s,             // 1
-         s,   -s,   s,             // 2
-         0.0f, -s, -s              // 3
+         0.0f,  s,   0.0f,      
+        -s,   -s,   s,           
+         s,   -s,   s,             
+         0.0f, -s, -s              
     };
 
     // 6 рёбер => 12 индексов под GL_LINES

@@ -11,6 +11,13 @@ void Engine::Window::Init(int width, int height, const char* title, const float 
         std::cout << "Can`t initializate GLFW!" << std::endl;
     }
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);   
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);  
+
     Window::window = glfwCreateWindow(width, height, title, NULL, NULL);
     
     if (!window){

@@ -27,6 +27,9 @@ int main(){
     Engine::TetrahedronWire tet;
     tet.Init(0.6f);
 
+
+    float s = 1.0f;
+
     glEnable(GL_DEPTH_TEST);
     float angleX = 0.0f;
     float angleY = 0.0f;
@@ -60,6 +63,8 @@ int main(){
         if (Engine::Events::Get().IsKeyDown(GLFW_KEY_UP)) angleY += 0.03f;
         if (Engine::Events::Get().IsKeyDown(GLFW_KEY_DOWN))  angleY -= 0.03f;
         if (Engine::Events::Get().IsKeyPressed(GLFW_KEY_R)){  angleX = 0.0f; angleY = 0.0f;  }
+        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_H))  s += 0.05f;
+        if (Engine::Events::Get().IsKeyDown(GLFW_KEY_G) && s >= 0.1f)  s -= 0.05f;
 
         auto& e = Engine::Events::Get();
 
@@ -74,7 +79,8 @@ int main(){
             angleY -= (float)e.MouseDY() * 0.003f;
         }
 
-        
+        model = glm::scale(model, glm::vec3(s, s, s));
+
         model = glm::rotate(model, angleX, glm::vec3(0,1,0));
 
         model = glm::rotate(model, angleY, glm::vec3(1,0,0));
