@@ -7,8 +7,8 @@ namespace Engine{
     struct Camera {
     glm::vec3 target = {0,0,0};
     float distance = 6.0f;   
-    float yaw = 0.0f;          
-    float pitch = 0.3f;       
+    float yaw = -2.14159265f;          
+    float pitch = -1.0f;       
     float fov = 60.0f;
 
     glm::vec3 position() const;

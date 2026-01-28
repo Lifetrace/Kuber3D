@@ -41,6 +41,8 @@ bool RayPlane(const glm::vec3& O, const glm::vec3& D, const glm::vec3& A, const 
 
 bool ExtendUsingCutLine();
 
+void CreateCube();
+
 int main(){
     if(Engine::Window::Init(1280, 720, "Program") != 0){
         return -1;
@@ -136,6 +138,13 @@ int main(){
             ExtendUsingCutLine();
         }
 
+        if(Engine::Events::jPressed(GLFW_KEY_K) && IsEditMode && 
+            Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL) && 
+            Engine::Buffers::positions.size() == 0){
+            
+            CreateCube();
+        }
+
         // Navigation
         if (Engine::Events::jclicked(GLFW_MOUSE_BUTTON_LEFT) && IsEditMode){
             if (!Engine::Events::Pressed(GLFW_KEY_LEFT_SHIFT))
@@ -172,18 +181,27 @@ int main(){
         if (Engine::Buffers::positions.size() < 2)
         Engine::Buffers::lineIndices.clear();
 
+        //<--Grid Draw
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+
+        Engine::Grid::Draw();
+
+        glDepthMask(GL_TRUE);
+
         //PointDraw
         shader->setInt("uIsPoints", 1);
         Engine::Buffers::DrawPoints();
 
         //LineDraw
         shader->setInt("uIsPoints", 0);
+        glEnable(GL_POLYGON_OFFSET_LINE);
+        glPolygonOffset(-1.0f, -1.0f);
+
         Engine::Buffers::DrawLines();
         
-        //<--Grid Draw
-        glDepthMask(GL_FALSE);
-        Engine::Grid::Draw();
-        glDepthMask(GL_TRUE);   
+        glDisable(GL_POLYGON_OFFSET_LINE);
+ 
 
         //Window Buffers
         Engine::Window::SwapBuffers(Engine::Window::GetWin());
@@ -504,5 +522,34 @@ bool ExtendUsingCutLine()
     return true;
 }
 
+void CreateCube(){
+    Engine::Buffers::AddPoint(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 0
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 1
+    Engine::Buffers::AddPoint(0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 2
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 3
+    
+    Engine::Buffers::AddPoint(0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 4
+    Engine::Buffers::AddPoint(1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 5
+    Engine::Buffers::AddPoint(0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 6
+    Engine::Buffers::AddPoint(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);// 7
 
-
+    //0
+    Engine::Buffers::ConnectPointsLine(0, 1);
+    Engine::Buffers::ConnectPointsLine(0, 2);
+    Engine::Buffers::ConnectPointsLine(0, 4);
+    //1
+    Engine::Buffers::ConnectPointsLine(1, 5);
+    Engine::Buffers::ConnectPointsLine(1, 3);
+    //3
+    Engine::Buffers::ConnectPointsLine(3, 2);
+    Engine::Buffers::ConnectPointsLine(3, 7);
+    //2
+    Engine::Buffers::ConnectPointsLine(2, 6);
+    //4
+    Engine::Buffers::ConnectPointsLine(4, 5);
+    Engine::Buffers::ConnectPointsLine(4, 6);
+    //5
+    Engine::Buffers::ConnectPointsLine(5, 7);
+    //7
+    Engine::Buffers::ConnectPointsLine(7, 6);
+}
