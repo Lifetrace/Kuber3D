@@ -54,7 +54,7 @@ int main(){
 
     Engine::Buffers::Init();
 
-    Engine::Grid::Init(1.0f, 50); 
+    Engine::Grid::Init(1.0f, 100); 
 
     glm::mat4 model(1.0f);
 
@@ -113,6 +113,10 @@ int main(){
             Engine::Buffers::Update();
         }
 
+        if (Engine::Events::jPressed(GLFW_KEY_K) && IsEditMode && selectedOrder.size() == 1){
+            int idx = selectedOrder[0];
+            cam.target = Engine::Buffers::positions[idx];
+        }
 
         //DeletePoints
         if(Engine::Events::jPressed(GLFW_KEY_DELETE) && IsEditMode){
@@ -126,7 +130,7 @@ int main(){
         
         //CutPoints
         if(Engine::Events::jPressed(GLFW_KEY_T) && IsEditMode && selectedOrder.size() == 2){
-            CutLine(2.0f, 3.0f);
+            CutLine(1.0f, 2.0f);
         }
 
         //Tab
@@ -199,7 +203,7 @@ int main(){
         glPolygonOffset(-1.0f, -1.0f);
 
         Engine::Buffers::DrawLines();
-        
+
         glDisable(GL_POLYGON_OFFSET_LINE);
  
 
