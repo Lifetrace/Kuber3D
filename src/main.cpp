@@ -16,6 +16,7 @@ std::unordered_map<int, glm::vec4> selectedPointsByColor;
 std::unordered_map<int, glm::vec3> selectedPointsByCoords; 
 std::vector<int> selectedOrder;
 Engine::Camera cam;
+glm::vec3 targetH = cam.target;
 
 void SetEditMode();
 
@@ -43,6 +44,8 @@ bool ExtendUsingCutLine();
 
 void CreateCube();
 
+
+
 int main(){
     if(Engine::Window::Init(1280, 720, "Program") != 0){
         return -1;
@@ -63,10 +66,17 @@ int main(){
     Engine::Buffers::AddPoint(0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f);
     Engine::Buffers::AddPoint(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
-    
+    Engine::Buffers::ConnectPointsLine(0, 1);
+    Engine::Buffers::ConnectPointsLine(0, 2);
+    Engine::Buffers::ConnectPointsLine(0, 3);
+
     while(!Engine::Window::isShouldClose(Engine::Window::GetWin())){
         glClear(GL_COLOR_BUFFER_BIT);
         Engine::Events::PollEvents();
+
+        float smooth = 0.10f;  
+        cam.target = glm::mix(cam.target, targetH, smooth);
+
 
         int w, h;
 
@@ -115,7 +125,7 @@ int main(){
 
         if (Engine::Events::jPressed(GLFW_KEY_K) && IsEditMode && selectedOrder.size() == 1){
             int idx = selectedOrder[0];
-            cam.target = Engine::Buffers::positions[idx];
+            targetH = Engine::Buffers::positions[idx];
         }
 
         //DeletePoints
@@ -125,6 +135,9 @@ int main(){
 
         //ConnectPoints
         if(Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && selectedOrder.size() == 2){
+            if(Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL))
+            Engine::Buffers::DisConnectPointsLine(selectedOrder[0], selectedOrder[1]);
+            else
             Engine::Buffers::ConnectPointsLine(selectedOrder[0], selectedOrder[1]);
         }
         
@@ -139,7 +152,9 @@ int main(){
         }
 
         if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode) {
-            ExtendUsingCutLine();
+            if(!ExtendUsingCutLine()){
+                continue;
+            }
         }
 
         if(Engine::Events::jPressed(GLFW_KEY_K) && IsEditMode && 
@@ -205,8 +220,7 @@ int main(){
         Engine::Buffers::DrawLines();
 
         glDisable(GL_POLYGON_OFFSET_LINE);
- 
-
+        
         //Window Buffers
         Engine::Window::SwapBuffers(Engine::Window::GetWin());
 
