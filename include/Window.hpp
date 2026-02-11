@@ -4,8 +4,8 @@ class GLFWwindow;
 
 namespace Engine{
     class Window{
-        static GLFWwindow *window;
     public:
+        static GLFWwindow *window;
         static int  Init(int width, int height, const char* title);
         static void Terminate();
         static void SwapBuffers(GLFWwindow* window);

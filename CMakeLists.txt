@@ -6,7 +6,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(PROJECT_NAME Kuber3D)
 project(${PROJECT_NAME})
 
-add_executable(${PROJECT_NAME} src/main.cpp src/Window.cpp src/Events.cpp src/Shader.cpp src/Buffers.cpp src/Camera.cpp src/Grid.cpp)
+add_executable(${PROJECT_NAME}
+src/main.cpp
+src/Window.cpp
+src/Events.cpp
+src/Shader.cpp
+src/Buffers.cpp
+src/Camera.cpp
+src/Grid.cpp
+src/ImGui_Style.cpp
+src/imgui.cpp
+src/imgui_draw.cpp
+src/imgui_widgets.cpp
+src/imgui_tables.cpp
+src/imgui_impl_glfw.cpp
+src/imgui_impl_opengl3.cpp
+src/imgui_demo.cpp)
 
 if (MINGW)
   target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
