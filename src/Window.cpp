@@ -24,6 +24,7 @@ int Engine::Window::Init(int width, int height, const char* title){
     }
 
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to init GLAD\n";

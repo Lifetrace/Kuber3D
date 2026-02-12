@@ -56,6 +56,8 @@ int main()
     {
         return -1;
     }
+    
+    Engine::Events::initialize();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -71,7 +73,6 @@ int main()
 
     bool show_demo_window = false;
 
-    Engine::Events::initialize();
 
     Engine::Shader *shader = Engine::load_shader("assets/basic.vert", "assets/basic.frag");
     if (!shader)
@@ -94,13 +95,14 @@ int main()
 
     while (!Engine::Window::isShouldClose(Engine::Window::GetWin()))
     {
+        Engine::Events::PollEvents();
+         
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         ImGuiIO& io = ImGui::GetIO();
 
-        Engine::Events::PollEvents();
 
         float smooth = 0.10f;
         cam.target = glm::mix(cam.target, targetH, smooth);
@@ -268,8 +270,6 @@ int main()
         glDisable(GL_POLYGON_OFFSET_LINE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        Engine::Window::SwapBuffers(Engine::Window::GetWin());
 
         if (glfwGetWindowAttrib(Engine::Window::window, GLFW_ICONIFIED) != 0)
         {
