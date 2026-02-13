@@ -5,9 +5,12 @@ void Engine::Style::ApplyKuberOpaqueTheme() {
     ImGuiStyle& style = ImGui::GetStyle();
 //General
     style.FontSizeBase = 20.00f;
+    style.Colors[ImGuiCol_Text] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 // Colors
-    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.07f, 0.10f, 1.00f);
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
+    style.Colors[ImGuiCol_Tab] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
+    style.Colors[ImGuiCol_TabActive] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
     style.Colors[ImGuiCol_ChildBg] = ImVec4(0.10f, 0.11f, 0.15f, 1.00f);
     style.Colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.09f, 0.12f, 1.00f);
     style.Colors[ImGuiCol_FrameBg] = ImVec4(0.16f, 0.17f, 0.21f, 1.00f);

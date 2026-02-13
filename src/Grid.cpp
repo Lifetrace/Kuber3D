@@ -1,9 +1,9 @@
 #include "Grid.hpp"
 #include <cmath>
 
-static inline glm::vec4 MinorLineColor() { return {0.07f, 0.07f, 0.07f, 1.0f}; }
-static inline glm::vec4 AxisXColor()     { return {1.00f, 0.20f, 0.20f, 0.6f}; }
-static inline glm::vec4 AxisZColor()     { return {0.20f, 0.45f, 1.00f, 0.6f}; }
+static inline glm::vec4 MinorLineColor() { return {0.0f, 0.0f, 0.0f, 0.6f}; }
+static inline glm::vec4 AxisXColor()     { return {0.0f, 0.2f, 0.6f, 0.8f}; }
+static inline glm::vec4 AxisZColor()     { return {0.0f, 0.2f, 0.6f, 0.8f}; }
 
 static inline void PushLine(
     std::vector<glm::vec3>& pos,
