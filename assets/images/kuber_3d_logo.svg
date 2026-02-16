@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1080"
+   height="1080"
+   viewBox="0 0 1080 1080"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="kuber_3d_logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     showguides="true"
+     inkscape:zoom="0.35355339"
+     inkscape:cx="313.95541"
+     inkscape:cy="719.8347"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="-18.724746 : 733.4105 : 1"
+       inkscape:vp_y="0 : 1029.9918 : 0"
+       inkscape:vp_z="1145.1683 : 721.2189 : 1"
+       inkscape:persp3d-origin="539.72755 : 349.19338 : 1"
+       id="perspective1" />
+  </defs>
+  <g
+     inkscape:label="Слой 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g68"
+       transform="matrix(3.3032915,0,0,3.2913781,-1186.122,-1338.8601)">
+      <path
+         d="M 523.49924,717.02762 359.82149,662.99247 h 327.35352 z"
+         style="fill:#0047ab;fill-opacity:0.751748;stroke-width:0.911757"
+         id="path63" />
+      <path
+         sodipodi:type="star"
+         style="fill:#000000;fill-opacity:1"
+         id="path62-5"
+         inkscape:flatsided="true"
+         sodipodi:sides="3"
+         sodipodi:cx="498.5"
+         sodipodi:cy="578"
+         sodipodi:r1="189"
+         sodipodi:r2="81.964211"
+         sodipodi:arg1="-1.5707964"
+         sodipodi:arg2="-0.52359877"
+         inkscape:rounded="0"
+         inkscape:randomized="0"
+         d="m 498.49999,389 163.67882,283.49999 -327.3576,2e-5 z"
+         inkscape:transform-center-x="0.69148678"
+         inkscape:transform-center-y="20.704306"
+         transform="matrix(0.46097745,0,0,-0.45180226,293.70183,838.81701)" />
+      <path
+         sodipodi:type="star"
+         style="fill:#0047ab;fill-opacity:0.503497"
+         id="path62"
+         inkscape:flatsided="true"
+         sodipodi:sides="3"
+         sodipodi:cx="498.5"
+         sodipodi:cy="578"
+         sodipodi:r1="189"
+         sodipodi:r2="81.964211"
+         sodipodi:arg1="-1.5707964"
+         sodipodi:arg2="-0.52359877"
+         inkscape:rounded="0"
+         inkscape:randomized="0"
+         d="m 498.49999,389 163.67882,283.49999 -327.3576,2e-5 z"
+         inkscape:transform-center-x="1.5"
+         inkscape:transform-center-y="-38.390357"
+         transform="matrix(1,0,0,0.83774251,25,99.618163)" />
+      <path
+         style="opacity:1;fill:#0047ab;fill-opacity:0.248252"
+         d="M 523.49609,425.50781 V 717.02734 L 687.16406,662.98828"
+         id="path68" />
+      <path
+         style="opacity:1;fill:#0047ab;fill-opacity:0.751748"
+         d="M 523.50224,425.50271 V 717.02224 L 359.83427,662.98318"
+         id="path68-3" />
+    </g>
+  </g>
+</svg>

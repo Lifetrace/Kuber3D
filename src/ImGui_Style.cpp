@@ -1,30 +1,34 @@
 #include "ImGui_Style.hpp"
 #include "imgui.h"
 
-void Engine::Style::ApplyKuberOpaqueTheme() {
-    ImGuiStyle& style = ImGui::GetStyle();
-//General
+void Engine::Style::ApplyKuberOpaqueTheme()
+{
+    ImGuiStyle &style = ImGui::GetStyle();
+    // General
     style.FontSizeBase = 20.00f;
     style.Colors[ImGuiCol_Text] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-// Colors
+    // Colors
     style.Colors[ImGuiCol_WindowBg] = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
     style.Colors[ImGuiCol_Tab] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
     style.Colors[ImGuiCol_TabActive] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
-    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.10f, 0.11f, 0.15f, 1.00f);
-    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.09f, 0.12f, 1.00f);
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.8f, 0.8f, 0.8f, 1.00f);
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.9f, 0.9f, 0.9f, 1.00f);
     style.Colors[ImGuiCol_FrameBg] = ImVec4(0.16f, 0.17f, 0.21f, 1.00f);
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
 
     style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
     style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
 
     style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
-    //style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.0f, 0.1f, 0.1f, 1.00f);
+    // style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.0f, 0.1f, 0.1f, 1.00f);
 
     style.Colors[ImGuiCol_Button] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
     style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.0f, 0.3f, 0.7f, 1.00f);
 
-//Main
+    // Main
     style.WindowPadding = ImVec2(5.0f, 5.0f);
     style.FramePadding = ImVec2(1.0f, 5.0f);
     style.ItemSpacing = ImVec2(4.0f, 6.0f);
@@ -33,12 +37,11 @@ void Engine::Style::ApplyKuberOpaqueTheme() {
     style.IndentSpacing = 20.0f;
     style.GrabMinSize = 20.0f;
     style.WindowBorderSize = 0.0f;
-    
-// Rounding
+
+    // Rounding
     style.WindowRounding = 5.0f;
     style.ChildRounding = 5.0f;
     style.FrameRounding = 5.0f;
     style.PopupRounding = 5.0f;
     style.GrabRounding = 5.0f;
-
 }

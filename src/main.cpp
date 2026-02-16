@@ -1,3 +1,58 @@
+/*#define _CRT_SECURE_NO_WARNINGS
+#define STB_IMAGE_IMPLEMENTATION
+#include "Image_loader.h"
+
+// Simple helper function to load an image into a OpenGL texture with common settings
+bool LoadTextureFromMemory(const void *data, size_t data_size, GLuint *out_texture, int *out_width, int *out_height)
+{
+    // Load from file
+    int image_width = 0;
+    int image_height = 0;
+    unsigned char *image_data = stbi_load_from_memory((const unsigned char *)data, (int)data_size, &image_width, &image_height, NULL, 4);
+    if (image_data == NULL)
+        return false;
+
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Upload pixels into texture
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    stbi_image_free(image_data);
+
+    *out_texture = image_texture;
+    *out_width = image_width;
+    *out_height = image_height;
+
+    return true;
+}
+
+// Open and read a file, then forward to LoadTextureFromMemory()
+bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_width, int *out_height)
+{
+    FILE *f = fopen(file_name, "rb");
+    if (f == NULL)
+        return false;
+    fseek(f, 0, SEEK_END);
+    size_t file_size = (size_t)ftell(f);
+    if (file_size == -1)
+        return false;
+    fseek(f, 0, SEEK_SET);
+    void *file_data = IM_ALLOC(file_size);
+    fread(file_data, 1, file_size, f);
+    fclose(f);
+    bool ret = LoadTextureFromMemory(file_data, file_size, out_texture, out_width, out_height);
+    IM_FREE(file_data);
+    return ret;
+}
+*/
+
 #include <iostream>
 #include <cmath>
 #include "Window.hpp"
@@ -19,12 +74,15 @@
 #include <functional>
 
 bool IsEditMode = false;
+bool Split = false;
 int shape = 8;
 std::unordered_map<int, glm::vec4> selectedPointsByColor;
 std::unordered_map<int, glm::vec3> selectedPointsByCoords;
 std::vector<int> selectedOrder;
 Engine::Camera cam;
 glm::vec3 targetH = cam.target;
+
+void SetSplit();
 
 void SetEditMode();
 
@@ -68,6 +126,13 @@ int main()
         return -1;
     }
 
+    /*int my_image_width = 0;
+    int my_image_height = 0;
+    GLuint my_image_texture = 0;
+    bool ret = LoadTextureFromFile("../../assets/images/kuber_3d-logo.svg", &my_image_texture, &my_image_width, &my_image_height);
+    IM_ASSERT(ret);
+    */
+
     Engine::Events::initialize();
 
     IMGUI_CHECKVERSION();
@@ -82,18 +147,18 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
-    ImFont *font = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
-    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
+    ImFont *font = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
+    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
     // io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
     bool show_demo_window = false;
 
-    Engine::Shader *shaderBase = Engine::load_shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+    Engine::Shader *shaderBase = Engine::load_shader("../../assets/shaders/basic.vert", "../../assets/shaders/basic.frag");
     if (!shaderBase)
         return -1;
 
-    Engine::Shader *shaderLines = Engine::load_shader("assets/shaders/line.vert", "assets/shaders/line.frag", "assets/shaders/line.geom");
+    Engine::Shader *shaderLines = Engine::load_shader("../../assets/shaders/line.vert", "../../assets/shaders/line.frag", "../../assets/shaders/line.geom");
     if (!shaderLines)
         return -1;
 
@@ -197,9 +262,15 @@ int main()
         }
 
         // CutPoints
-        if (Engine::Events::jPressed(GLFW_KEY_S) && IsEditMode && selectedOrder.size() == 2)
+        /*if (Engine::Events::jPressed(GLFW_KEY_S) && IsEditMode && selectedOrder.size() == 2)
         {
             CutLine(1.0f, 2.0f);
+        }
+        */
+        if (Engine::Events::jPressed(GLFW_KEY_S))
+        {
+            SetSplit();
+            IsEditMode = false;
         }
 
         // Tab
@@ -365,11 +436,11 @@ int main()
 
             ImGui::Begin("Kuber 3D", nullptr, flags);
 
+            //////////////////////////////////////////////ImGui::Image((ImTextureID)(intptr_t)my_image_texture, ImVec2(my_image_width, my_image_height));
+
             ImGui::PushFont(font_bold, 30.00f);
             ImGui::Text("Kuber 3D");
             ImGui::PopFont();
-
-            // ImGui::Separator();
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             if (ImGui::Button("Clean", ImVec2(-1, 0)))
@@ -442,6 +513,12 @@ int main()
             ImGui::PopStyleColor();
             ImGui::Separator();
 
+            ImGui::Text("P to create point");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ImGui::SetItemTooltip("Select 3 points");
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
             ImGui::Text("J to create line");
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 2 points");
@@ -490,6 +567,40 @@ int main()
             ImGui::End();
         }
 
+        if (Split /*&& IsEditMode*/ && selectedOrder.size() == 2)
+        {
+            ImGuiWindowFlags flags = /*ImGuiWindowFlags_NoResize |
+                                     ImGuiWindowFlags_NoMove |
+                                     ImGuiWindowFlags_NoScrollbar |
+                                     ImGuiWindowFlags_AlwaysAutoResize |
+                                     ImGuiWindowFlags_NoCollapse |
+                                     ImGuiWindowFlags_NoFocusOnAppearing |*/
+                ImGuiWindowFlags_NoTitleBar;
+
+            ImGui::SetNextWindowPos(ImVec2(Engine::width / 2 - 32, Engine::height / 2 - 64), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(-1, -1), ImGuiCond_Always);
+
+            ImGui::Begin("Split", nullptr, flags);
+            static char a[5] = "";
+            ImGui::InputText("a", a, IM_ARRAYSIZE(a));
+            ImGui::Separator();
+            static char b[5] = "";
+            ImGui::InputText("b", b, IM_ARRAYSIZE(b));
+
+            float a1 = static_cast<float>(std::atof(a));
+            float b1 = static_cast<float>(std::atof(b));
+
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            if (ImGui::Button("Split", ImVec2(-1, 0)))
+            {
+                CutLine(a1, b1);
+                Split = false;
+                IsEditMode = true;
+            }
+            ImGui::PopStyleColor();
+            ImGui::End();
+        }
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -519,6 +630,14 @@ void SetEditMode()
     {
         IsEditMode = false;
         glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+    }
+}
+
+void SetSplit()
+{
+    if (!Split)
+    {
+        Split = true;
     }
 }
 
@@ -763,7 +882,8 @@ bool RayPlane(
     return true;
 }
 
-bool ExtendUsingCutLine(){
+bool ExtendUsingCutLine()
+{
 
     if (selectedOrder.size() != 3)
         return false;
@@ -939,6 +1059,18 @@ void CreatePyramid()
     Engine::Buffers::ConnectPointsLine(3, 4);
     // 2
     Engine::Buffers::ConnectPointsLine(2, 4);
+
+    Engine::Buffers::AddQuad(0, 1, 3, 2);
+
+    Engine::Buffers::AddFace(0, 1, 4);
+
+    Engine::Buffers::AddFace(1, 3, 4);
+
+    Engine::Buffers::AddFace(3, 2, 4);
+
+    Engine::Buffers::AddFace(2, 0, 4);
+
+    Engine::Buffers::Update();
 }
 
 void CreateTetraheadron()
@@ -958,6 +1090,16 @@ void CreateTetraheadron()
     Engine::Buffers::ConnectPointsLine(1, 3);
     // 3
     Engine::Buffers::ConnectPointsLine(3, 2);
+
+    Engine::Buffers::AddFace(0, 1, 2);
+
+    Engine::Buffers::AddFace(0, 1, 3);
+
+    Engine::Buffers::AddFace(1, 2, 3);
+
+    Engine::Buffers::AddFace(2, 0, 3);
+
+    Engine::Buffers::Update();
 }
 
 void CreateCircle(int N, float R, float cx, float cy, float cz)
