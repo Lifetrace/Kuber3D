@@ -56,6 +56,7 @@ void Engine::Buffers::DeleteAll(){
     positions.clear();
     colors.clear();
     lineIndices.clear();
+    faceIndices.clear();
     connectedPoints.clear();
     Update();
 }
