@@ -27,6 +27,13 @@ void Engine::Buffers::Init(){
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
+    glGenBuffers(1, &eboFaces);
+
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboFaces);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faceIndices.size() * sizeof(unsigned int), faceIndices.data(), GL_STATIC_DRAW);
+
     glBindVertexArray(0);
 }
 
@@ -113,36 +120,41 @@ void Engine::Buffers::DisConnectPointsLine(int first, int second){
 
 
 void Engine::Buffers::Update(){
+    glBindVertexArray(vao);
+
     glBindBuffer(GL_ARRAY_BUFFER, vboPos);
-    glBufferData(
-        GL_ARRAY_BUFFER,
+    glBufferData(GL_ARRAY_BUFFER,
         (GLsizeiptr)(positions.size() * sizeof(glm::vec3)),
-        positions.data(),
-        GL_DYNAMIC_DRAW
-    );
+        positions.data(), GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, vboCol);
-    glBufferData(
-        GL_ARRAY_BUFFER,
+    glBufferData(GL_ARRAY_BUFFER,
         (GLsizeiptr)(colors.size() * sizeof(glm::vec4)),
-        colors.data(),
-        GL_DYNAMIC_DRAW
-    );
+        colors.data(), GL_DYNAMIC_DRAW);
 
+    // линии
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboLines);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
         (GLsizeiptr)(lineIndices.size() * sizeof(GLuint)),
-        lineIndices.data(),
-        GL_DYNAMIC_DRAW
-    );
+        lineIndices.data(), GL_DYNAMIC_DRAW);
+
+    // грани
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboFaces);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        (GLsizeiptr)(faceIndices.size() * sizeof(GLuint)),
+        faceIndices.data(), GL_DYNAMIC_DRAW);
+
+    glBindVertexArray(0);
 
     if (positions.size() != colors.size())
-    throw std::runtime_error("positions/colors size mismatch");
+        throw std::runtime_error("positions/colors size mismatch");
 }
 
-void Engine::Buffers::DrawLines()
-{
+
+void Engine::Buffers::DrawLines(){
     glBindVertexArray(vao);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboLines);
 
     if (lineIndices.size() >= 2)
     {
@@ -152,14 +164,39 @@ void Engine::Buffers::DrawLines()
     glBindVertexArray(0);
 }
 
-void Engine::Buffers::DrawPoints()
-{
+
+void Engine::Buffers::DrawPoints(){
     glBindVertexArray(vao);
 
     glDrawArrays(GL_POINTS, 0, (GLsizei)positions.size());
 
     glBindVertexArray(0);
 }
+
+void Engine::Buffers::DrawFaces(){
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboFaces);
+
+    if (faceIndices.size() >= 3)
+    {
+        glDrawElements(GL_TRIANGLES, (GLsizei)faceIndices.size(), GL_UNSIGNED_INT, (void*)0);
+    }
+
+    glBindVertexArray(0);
+}
+
+void Engine::Buffers::AddFace(unsigned int a, unsigned int b, unsigned int c){
+    faceIndices.push_back(a);
+    faceIndices.push_back(b);
+    faceIndices.push_back(c);
+}
+
+void Engine::Buffers::AddQuad(unsigned int a, unsigned int b, unsigned int c, unsigned int d){
+    AddFace(a, b, c);
+    AddFace(a, c, d);
+}
+
 
 void Engine::Buffers::Destroy(){
     if (eboLines) glDeleteBuffers(1, &eboLines);

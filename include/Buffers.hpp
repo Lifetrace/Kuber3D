@@ -7,6 +7,7 @@
 #include <glm/vec4.hpp>
 #include <unordered_map>
 
+typedef unsigned int uint;
 
 namespace Engine{
     class Buffers{
@@ -18,12 +19,13 @@ namespace Engine{
         }
     public:
         static void Update();
-        static inline GLuint vao, vboPos, vboCol;
+        static inline GLuint vao, vboPos, vboCol, eboFaces;
 
         static inline std::vector<glm::vec3> positions;
         static inline std::vector<glm::vec4> colors;
         static inline std::vector<GLuint> lineIndices;
         static inline std::vector<std::vector<GLuint>> connectedPoints;
+        static inline std::vector<unsigned int> faceIndices;
 
         static inline GLuint eboLines = 0;
 
@@ -34,6 +36,9 @@ namespace Engine{
         static void DeleteAll();
         static void ConnectPointsLine(int first, int second);
         static void DisConnectPointsLine(int first, int second);
+        
+        static void AddFace(unsigned int a, unsigned int b, unsigned int c);
+        static void AddQuad(unsigned int a, unsigned int b, unsigned int c, unsigned int d);
 
         static void ChangeColor(int index, float r, float g, float b, float a);
 
@@ -41,5 +46,6 @@ namespace Engine{
 
         static void DrawLines();
         static void DrawPoints();
+        static void DrawFaces();
     };
 }

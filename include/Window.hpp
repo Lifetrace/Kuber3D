@@ -3,8 +3,11 @@
 class GLFWwindow;
 
 namespace Engine{
+    extern int width;
+    extern int height;
     class Window{
     public:
+
         static GLFWwindow *window;
         static int  Init(int width, int height, const char* title);
         static void Terminate();

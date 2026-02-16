@@ -3,6 +3,16 @@
 #include <iostream>
 
 GLFWwindow* Engine::Window::window = nullptr;
+namespace Engine {
+    int width  = 1280;
+    int height = 720;
+}
+
+void frame_buffersize_callback(GLFWwindow* window, int Width, int Height){
+    Engine::width = Width;
+    Engine::height = Height;
+    glViewport(0, 0, Width, Height);
+}
 
 int Engine::Window::Init(int width, int height, const char* title){
     if(!glfwInit()){
@@ -25,6 +35,8 @@ int Engine::Window::Init(int width, int height, const char* title){
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
+
+    glfwSetFramebufferSizeCallback(window, frame_buffersize_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to init GLAD\n";

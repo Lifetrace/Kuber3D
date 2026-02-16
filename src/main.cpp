@@ -52,11 +52,12 @@ bool ExtendUsingCutLine();
 void CreateCube();
 void CreatePyramid();
 void CreateTetraheadron();
+void CreateCircle(int N, float R, float cx, float cy, float cz);
+
 
 int main()
 {
-    if (Engine::Window::Init(1280, 720, "Kuber 3D") != 0)
-    {
+    if (Engine::Window::Init(Engine::width, Engine::height, "Kuber 3D") != 0){
         return -1;
     }
 
@@ -74,15 +75,19 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
-    ImFont *font = io.Fonts->AddFontFromFileTTF("../../fonts/PFBeauSansPro-Reg.ttf", 16.0f);
-    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("../../fonts/PFBeauSansPro-Bold.ttf", 16.0f);
+    ImFont *font = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
+    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
     //io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
     bool show_demo_window = false;
 
-    Engine::Shader *shader = Engine::load_shader("assets/basic.vert", "assets/basic.frag");
-    if (!shader)
+    Engine::Shader *shaderBase = Engine::load_shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+    if (!shaderBase)
+        return -1;
+
+    Engine::Shader* shaderLines = Engine::load_shader("assets/shaders/line.vert", "assets/shaders/line.frag", "assets/shaders/line.geom");
+    if (!shaderLines)
         return -1;
 
     Engine::Buffers::Init();
@@ -202,6 +207,11 @@ int main()
             {
                 continue;
             }
+        
+        }
+
+        if (Engine::Events::jPressed(GLFW_KEY_N) && IsEditMode && Engine::Buffers::positions.size() == 0){
+            CreateCircle(16, 1.0f, 0.0f, 0.0f, 0.0f);
         }
 
         if (Engine::Events::jPressed(GLFW_KEY_K) && IsEditMode &&
@@ -245,10 +255,10 @@ int main()
         }
 
         // Shader Use and Set Matrixes
-        shader->use();
-        shader->SetMat4("uModel", model);
-        shader->SetMat4("uView", cam.view());
-        shader->SetMat4("uProj", cam.proj(aspect));
+        shaderBase->use();
+        shaderBase->SetMat4("uModel", model);
+        shaderBase->SetMat4("uView", cam.view());
+        shaderBase->SetMat4("uProj", cam.proj(aspect));
 
         // Color Selected Points
         for (const auto &[index, col] : selectedPointsByColor)
@@ -260,7 +270,7 @@ int main()
         if (Engine::Buffers::positions.size() < 2)
             Engine::Buffers::lineIndices.clear();
 
-        //<--Grid Draw
+        // <--Grid Draw
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
 
@@ -268,23 +278,59 @@ int main()
 
         glDepthMask(GL_TRUE);
 
-        // PointDraw
-        shader->setInt("uIsPoints", 1);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 1.0f);
+
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        Engine::Buffers::DrawFaces();
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        glDisable(GL_POLYGON_OFFSET_FILL);
+
+
+        glDisable(GL_DEPTH_TEST);
+        shaderBase->use();
+        shaderBase->setInt("uIsPoints", 1);
         Engine::Buffers::DrawPoints();
+        shaderBase->setInt("uIsPoints", 0);
+        glEnable(GL_DEPTH_TEST);
 
-        // LineDraw
-        shader->setInt("uIsPoints", 0);
-        glEnable(GL_POLYGON_OFFSET_LINE);
-        glPolygonOffset(-1.0f, -1.0f);
 
+        shaderLines->use();
+
+        shaderLines->SetMat4("uModel", model);
+        shaderLines->SetMat4("uView",  cam.view());
+        shaderLines->SetMat4("uProj",  cam.proj(aspect));
+
+        shaderLines->SetVec2("uViewport", glm::vec2((float)Engine::width, (float)Engine::height));
+        shaderLines->SetFloat("uDashPx", 10.0f);
+        shaderLines->SetFloat("uGapPx",  6.0f);
+
+        glDepthMask(GL_FALSE);
+
+        shaderLines->setInt("uDashed", 0);
+        glDepthFunc(GL_LEQUAL);
         Engine::Buffers::DrawLines();
 
-        glDisable(GL_POLYGON_OFFSET_LINE);
+        shaderLines->setInt("uDashed", 1);
+        glDepthFunc(GL_GEQUAL);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        Engine::Buffers::DrawLines();
+        glDisable(GL_BLEND);
+
+        glDepthFunc(GL_LESS);
+        glDepthMask(GL_TRUE);
+
+
+        shaderBase->use();
 
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_POLYGON_OFFSET_LINE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
         if (glfwGetWindowAttrib(Engine::Window::window, GLFW_ICONIFIED) != 0)
         {
@@ -805,6 +851,20 @@ void CreateCube()
     Engine::Buffers::ConnectPointsLine(5, 7);
     // 7
     Engine::Buffers::ConnectPointsLine(7, 6);
+
+    Engine::Buffers::AddQuad(0, 1, 3, 2);
+
+    Engine::Buffers::AddQuad(4, 6, 7, 5);
+
+    Engine::Buffers::AddQuad(2, 3, 7, 6);
+
+    Engine::Buffers::AddQuad(0, 4, 5, 1);
+
+    Engine::Buffers::AddQuad(0, 2, 6, 4);
+
+    Engine::Buffers::AddQuad(1, 5, 7, 3);
+
+    Engine::Buffers::Update();
 }
 
 
@@ -852,4 +912,22 @@ void CreateTetraheadron()
     Engine::Buffers::ConnectPointsLine(1, 3);
     // 3
     Engine::Buffers::ConnectPointsLine(3, 2);
+}
+
+#include <cmath>
+
+void CreateCircle(int N, float R, float cx, float cy, float cz)
+{
+    const float TWO_PI = 6.283185307179586f;
+
+    for (int i = 0; i < N; ++i)
+    {
+        float t = TWO_PI * (float)i / (float)N;
+
+        float x = cx + R * std::sin(t);
+        float y = cy;
+        float z = cz + R * std::cos(t);
+
+        Engine::Buffers::AddPoint(x, y, z, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
 }
