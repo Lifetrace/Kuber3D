@@ -763,8 +763,7 @@ bool RayPlane(
     return true;
 }
 
-bool ExtendUsingCutLine()
-{
+bool ExtendUsingCutLine(){
 
     if (selectedOrder.size() != 3)
         return false;
