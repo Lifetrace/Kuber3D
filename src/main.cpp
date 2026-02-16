@@ -506,39 +506,27 @@ int main()
             ImGui::Separator();
 
             ImGui::Text("V to set view point");
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 1 point");
-            ImGui::PopStyleColor();
             ImGui::Separator();
 
             ImGui::Text("S to split line");
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 2 points");
-            ImGui::PopStyleColor();
             ImGui::Separator();
 
             ImGui::Text("P to create point");
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 3 points");
-            ImGui::PopStyleColor();
             ImGui::Separator();
 
             ImGui::Text("J to create line");
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 2 points");
-            ImGui::PopStyleColor();
             ImGui::Separator();
 
             ImGui::Text("Ctrl + J to delete line");
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 2 points");
-            ImGui::PopStyleColor();
             ImGui::Separator();
 
             ImGui::Text("G to create line in face");
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 3 points. Begining => direction => face dot");
-            ImGui::PopStyleColor();
             ImGui::Separator();
 
             /*if (ImGui::Button("Filling", ImVec2(-1, 0)))
