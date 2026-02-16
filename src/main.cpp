@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include "Window.hpp"
 #include "Events.hpp"
 #include "Shader.hpp"
@@ -54,16 +55,16 @@ void CreatePyramid();
 void CreateTetraheadron();
 void CreateCircle(int N, float R, float cx, float cy, float cz);
 
-
 // base dots color
-float pr = 0.0f; 
+float pr = 0.0f;
 float pg = 0.2f;
 float pb = 0.6f;
 float pa = 1.0f;
 
 int main()
 {
-    if (Engine::Window::Init(Engine::width, Engine::height, "Kuber 3D") != 0){
+    if (Engine::Window::Init(Engine::width, Engine::height, "Kuber 3D") != 0)
+    {
         return -1;
     }
 
@@ -81,18 +82,18 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
-    ImFont *font = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
-    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
-    //io.Fonts->AddFontDefault();
+    ImFont *font = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
+    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
+    // io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
     bool show_demo_window = false;
 
-    Engine::Shader *shaderBase = Engine::load_shader("../../assets/shaders/basic.vert", "../../assets/shaders/basic.frag");
+    Engine::Shader *shaderBase = Engine::load_shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
     if (!shaderBase)
         return -1;
 
-    Engine::Shader* shaderLines = Engine::load_shader("../../assets/shaders/line.vert", "../../assets/shaders/line.frag", "../../assets/shaders/line.geom");
+    Engine::Shader *shaderLines = Engine::load_shader("assets/shaders/line.vert", "assets/shaders/line.frag", "assets/shaders/line.geom");
     if (!shaderLines)
         return -1;
 
@@ -196,7 +197,7 @@ int main()
         }
 
         // CutPoints
-        if (Engine::Events::jPressed(GLFW_KEY_T) && IsEditMode && selectedOrder.size() == 2)
+        if (Engine::Events::jPressed(GLFW_KEY_S) && IsEditMode && selectedOrder.size() == 2)
         {
             CutLine(1.0f, 2.0f);
         }
@@ -213,27 +214,30 @@ int main()
             {
                 continue;
             }
-        
-        }
-
-        if (Engine::Events::jPressed(GLFW_KEY_N) && IsEditMode && Engine::Buffers::positions.size() == 0){
-            CreateCircle(16, 1.0f, 0.0f, 0.0f, 0.0f);
         }
 
         if (Engine::Events::jPressed(GLFW_KEY_E) && IsEditMode &&
             Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL) &&
             Engine::Buffers::positions.size() == 0)
         {
-            if (shape == 8){
+            if (shape == 8)
+            {
                 CreateCube();
             }
 
-            if (shape == 5){
+            if (shape == 5)
+            {
                 CreatePyramid();
             }
 
-            if (shape == 4){
+            if (shape == 4)
+            {
                 CreateTetraheadron();
+            }
+
+            if (shape == 1)
+            {
+                CreateCircle(16, 1.0f, 0.0f, 0.0f, 0.0f);
             }
         }
 
@@ -293,7 +297,6 @@ int main()
 
         glDisable(GL_POLYGON_OFFSET_FILL);
 
-
         glDisable(GL_DEPTH_TEST);
         shaderBase->use();
         shaderBase->setInt("uIsPoints", 1);
@@ -301,16 +304,15 @@ int main()
         shaderBase->setInt("uIsPoints", 0);
         glEnable(GL_DEPTH_TEST);
 
-
         shaderLines->use();
 
         shaderLines->SetMat4("uModel", model);
-        shaderLines->SetMat4("uView",  cam.view());
-        shaderLines->SetMat4("uProj",  cam.proj(aspect));
+        shaderLines->SetMat4("uView", cam.view());
+        shaderLines->SetMat4("uProj", cam.proj(aspect));
 
         shaderLines->SetVec2("uViewport", glm::vec2((float)Engine::width, (float)Engine::height));
         shaderLines->SetFloat("uDashPx", 10.0f);
-        shaderLines->SetFloat("uGapPx",  6.0f);
+        shaderLines->SetFloat("uGapPx", 6.0f);
 
         glDepthMask(GL_FALSE);
 
@@ -329,14 +331,12 @@ int main()
         glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);
 
-
         shaderBase->use();
 
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_POLYGON_OFFSET_LINE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 
         if (glfwGetWindowAttrib(Engine::Window::window, GLFW_ICONIFIED) != 0)
         {
@@ -369,13 +369,14 @@ int main()
             ImGui::Text("Kuber 3D");
             ImGui::PopFont();
 
-            //ImGui::Separator();
+            // ImGui::Separator();
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             if (ImGui::Button("Clean", ImVec2(-1, 0)))
             {
-                if (IsEditMode){
-                Engine::Buffers::DeleteAll();
+                if (IsEditMode)
+                {
+                    Engine::Buffers::DeleteAll();
                 }
             }
             ImGui::SetItemTooltip("Tap to delete all points (need to be in edit mode)");
@@ -410,6 +411,14 @@ int main()
                     ImGui::EndTabItem();
                     ImGui::PopStyleColor();
                 }
+                if (ImGui::BeginTabItem("Circle"))
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    ImGui::Text("Ctrl + E for Circle creation");
+                    shape = 1;
+                    ImGui::EndTabItem();
+                    ImGui::PopStyleColor();
+                }
                 ImGui::EndTabBar();
             }
             ImGui::PopStyleColor();
@@ -420,7 +429,7 @@ int main()
 
             ImGui::Text("TAB to enter in editor mode");
             ImGui::Separator();
-            
+
             ImGui::Text("V to set view point");
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::SetItemTooltip("Select 1 point");
@@ -451,7 +460,6 @@ int main()
             ImGui::PopStyleColor();
             ImGui::Separator();
 
-
             /*if (ImGui::Button("Filling", ImVec2(-1, 0)))
             {
                 counter++;
@@ -475,7 +483,7 @@ int main()
             ImGui::PushFont(NULL, custom_size);
             ImGui::Text("FontSize = %.2f (== %.2f * global_scale)", ImGui::GetFontSize(), custom_size);
             ImGui::PopFont();*/
-            //ImGui::Separator();
+            // ImGui::Separator();
 
             ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
@@ -505,7 +513,7 @@ void SetEditMode()
     if (!IsEditMode)
     {
         IsEditMode = true;
-        glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+        glClearColor(0.9f, 0.9f, 1.0f, 1.0f);
     }
     else
     {
@@ -867,14 +875,14 @@ bool ExtendUsingCutLine()
 void CreateCube()
 {
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
-    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 1
-    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 2
-    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 3
+    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa);  // 1
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa);  // 2
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, pr, pg, pb, pa);   // 3
 
     Engine::Buffers::AddPoint(-1.0f, 2.0f, -1.0f, pr, pg, pb, pa); // 4
-    Engine::Buffers::AddPoint(1.0f, 2.0f, -1.0f, pr, pg, pb, pa); // 5
-    Engine::Buffers::AddPoint(-1.0f, 2.0f, 1.0f, pr, pg, pb, pa); // 6
-    Engine::Buffers::AddPoint(1.0f, 2.0f, 1.0f, pr, pg, pb, pa); // 7
+    Engine::Buffers::AddPoint(1.0f, 2.0f, -1.0f, pr, pg, pb, pa);  // 5
+    Engine::Buffers::AddPoint(-1.0f, 2.0f, 1.0f, pr, pg, pb, pa);  // 6
+    Engine::Buffers::AddPoint(1.0f, 2.0f, 1.0f, pr, pg, pb, pa);   // 7
 
     // 0
     Engine::Buffers::ConnectPointsLine(0, 1);
@@ -911,16 +919,14 @@ void CreateCube()
     Engine::Buffers::Update();
 }
 
-
 void CreatePyramid()
 {
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
-    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 1
-    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 2
-    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 3
+    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa);  // 1
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa);  // 2
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, pr, pg, pb, pa);   // 3
 
     Engine::Buffers::AddPoint(0.0f, 2.0f, 0.0f, pr, pg, pb, pa); // 4
-
 
     // 0
     Engine::Buffers::ConnectPointsLine(0, 1);
@@ -934,18 +940,15 @@ void CreatePyramid()
     Engine::Buffers::ConnectPointsLine(3, 4);
     // 2
     Engine::Buffers::ConnectPointsLine(2, 4);
-
 }
-
 
 void CreateTetraheadron()
 {
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -0.8f, pr, pg, pb, pa); // 0
-    Engine::Buffers::AddPoint(1.0f, 0.0f, -0.8f, pr, pg, pb, pa); // 1
-    Engine::Buffers::AddPoint(0.0f, 0.0f, 1.3f, pr, pg, pb, pa); // 2
+    Engine::Buffers::AddPoint(1.0f, 0.0f, -0.8f, pr, pg, pb, pa);  // 1
+    Engine::Buffers::AddPoint(0.0f, 0.0f, 1.3f, pr, pg, pb, pa);   // 2
 
     Engine::Buffers::AddPoint(0.0f, 2.0f, 0.0f, pr, pg, pb, pa); // 3
-
 
     // 0
     Engine::Buffers::ConnectPointsLine(0, 1);
@@ -957,8 +960,6 @@ void CreateTetraheadron()
     // 3
     Engine::Buffers::ConnectPointsLine(3, 2);
 }
-
-#include <cmath>
 
 void CreateCircle(int N, float R, float cx, float cy, float cz)
 {
@@ -972,6 +973,12 @@ void CreateCircle(int N, float R, float cx, float cy, float cz)
         float y = cy;
         float z = cz + R * std::cos(t);
 
-        Engine::Buffers::AddPoint(x, y, z, 1.0f, 1.0f, 1.0f, 1.0f);
+        Engine::Buffers::AddPoint(x, y, z, pr, pg, pb, pa);
+
+        for (int pt_b = 0; pt_b < N; pt_b++)
+        {
+            Engine::Buffers::ConnectPointsLine(pt_b, pt_b + 1);
+            Engine::Buffers::ConnectPointsLine(N - 1, 0);
+        }
     }
 }

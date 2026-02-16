@@ -46,7 +46,7 @@ int Engine::Window::Init(int width, int height, const char* title){
 
     glEnable(GL_PROGRAM_POINT_SIZE);
     glViewport(0, 0, width, height);
-    glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+    glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
