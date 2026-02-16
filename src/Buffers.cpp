@@ -61,7 +61,7 @@ void Engine::Buffers::DeleteAll(){
 }
 
 void Engine::Buffers::ChangeColor(int index, float r, float g, float b, float a){
-    colors.at(index) = glm::vec4(r, g, b,a);
+    colors.at(index) = glm::vec4(r, g, b, a);
     Update();
 }
 

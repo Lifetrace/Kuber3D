@@ -55,6 +55,12 @@ void CreateTetraheadron();
 void CreateCircle(int N, float R, float cx, float cy, float cz);
 
 
+// base dots color
+float pr = 0.0f; 
+float pg = 0.2f;
+float pb = 0.6f;
+float pa = 1.0f;
+
 int main()
 {
     if (Engine::Window::Init(Engine::width, Engine::height, "Kuber 3D") != 0){
@@ -96,7 +102,7 @@ int main()
 
     glm::mat4 model(1.0f);
 
-    Engine::Buffers::AddPoint(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    Engine::Buffers::AddPoint(0.0f, 0.0f, 0.0f, pr, pg, pb, pa);
     Engine::Buffers::AddPoint(1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f);
     Engine::Buffers::AddPoint(0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f);
     Engine::Buffers::AddPoint(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
@@ -164,11 +170,11 @@ int main()
             if (!RayPlane(ray.origin, ray.dir, A, n, hit))
                 continue;
 
-            Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, 1.0f, 1.0f, 1.0f, 1.0f);
+            Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, pr, pg, pb, pa);
             Engine::Buffers::Update();
         }
 
-        if (Engine::Events::jPressed(GLFW_KEY_K) && IsEditMode && selectedOrder.size() == 1)
+        if (Engine::Events::jPressed(GLFW_KEY_V) && IsEditMode && selectedOrder.size() == 1)
         {
             int idx = selectedOrder[0];
             targetH = Engine::Buffers::positions[idx];
@@ -214,7 +220,7 @@ int main()
             CreateCircle(16, 1.0f, 0.0f, 0.0f, 0.0f);
         }
 
-        if (Engine::Events::jPressed(GLFW_KEY_K) && IsEditMode &&
+        if (Engine::Events::jPressed(GLFW_KEY_E) && IsEditMode &&
             Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL) &&
             Engine::Buffers::positions.size() == 0)
         {
@@ -363,7 +369,7 @@ int main()
             ImGui::Text("Kuber 3D");
             ImGui::PopFont();
 
-            ImGui::Separator();
+            //ImGui::Separator();
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             if (ImGui::Button("Clean", ImVec2(-1, 0)))
@@ -383,7 +389,7 @@ int main()
                 if (ImGui::BeginTabItem("Cube"))
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-                    ImGui::Text("Ctrl + K for Cube creation");
+                    ImGui::Text("Ctrl + E for Cube creation");
                     shape = 8;
                     ImGui::EndTabItem();
                     ImGui::PopStyleColor();
@@ -391,7 +397,7 @@ int main()
                 if (ImGui::BeginTabItem("Pyramid"))
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-                    ImGui::Text("Ctrl + K for Pyramid creation");
+                    ImGui::Text("Ctrl + E for Pyramid creation");
                     shape = 5;
                     ImGui::EndTabItem();
                     ImGui::PopStyleColor();
@@ -399,7 +405,7 @@ int main()
                 if (ImGui::BeginTabItem("Tetrahedron"))
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-                    ImGui::Text("Ctrl + K for Tetrahedron creation");
+                    ImGui::Text("Ctrl + E for Tetrahedron creation");
                     shape = 4;
                     ImGui::EndTabItem();
                     ImGui::PopStyleColor();
@@ -407,6 +413,44 @@ int main()
                 ImGui::EndTabBar();
             }
             ImGui::PopStyleColor();
+
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+            ImGui::Text("Hover to see tooltips");
+            ImGui::PopStyleColor();
+
+            ImGui::Text("TAB to enter in editor mode");
+            ImGui::Separator();
+            
+            ImGui::Text("V to set view point");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ImGui::SetItemTooltip("Select 1 point");
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
+            ImGui::Text("S to split line");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ImGui::SetItemTooltip("Select 2 points");
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
+            ImGui::Text("J to create line");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ImGui::SetItemTooltip("Select 2 points");
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
+            ImGui::Text("Ctrl + J to delete line");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ImGui::SetItemTooltip("Select 2 points");
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
+            ImGui::Text("G to create line in face");
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            ImGui::SetItemTooltip("Select 3 points. Begining => direction => face dot");
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
 
             /*if (ImGui::Button("Filling", ImVec2(-1, 0)))
             {
@@ -431,7 +475,7 @@ int main()
             ImGui::PushFont(NULL, custom_size);
             ImGui::Text("FontSize = %.2f (== %.2f * global_scale)", ImGui::GetFontSize(), custom_size);
             ImGui::PopFont();*/
-            ImGui::Separator();
+            //ImGui::Separator();
 
             ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
@@ -461,12 +505,12 @@ void SetEditMode()
     if (!IsEditMode)
     {
         IsEditMode = true;
-        glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
+        glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
     }
     else
     {
         IsEditMode = false;
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
     }
 }
 
@@ -665,7 +709,7 @@ void CutLine(float p, float q)
 
     const glm::vec3 R = A + (B - A) * t;
 
-    Engine::Buffers::AddPoint(R.x, R.y, R.z, 1.0f, 1.0f, 1.0f, 1.0f);
+    Engine::Buffers::AddPoint(R.x, R.y, R.z, pr, pg, pb, pa);
 
     const int newIndex = static_cast<int>(Engine::Buffers::positions.size()) - 1;
     Engine::Buffers::ConnectPointsLine(a, newIndex);
@@ -822,15 +866,15 @@ bool ExtendUsingCutLine()
 
 void CreateCube()
 {
-    Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 0
-    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 1
-    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 2
-    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 3
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
+    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 1
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 2
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 3
 
-    Engine::Buffers::AddPoint(-1.0f, 2.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 4
-    Engine::Buffers::AddPoint(1.0f, 2.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 5
-    Engine::Buffers::AddPoint(-1.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 6
-    Engine::Buffers::AddPoint(1.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 7
+    Engine::Buffers::AddPoint(-1.0f, 2.0f, -1.0f, pr, pg, pb, pa); // 4
+    Engine::Buffers::AddPoint(1.0f, 2.0f, -1.0f, pr, pg, pb, pa); // 5
+    Engine::Buffers::AddPoint(-1.0f, 2.0f, 1.0f, pr, pg, pb, pa); // 6
+    Engine::Buffers::AddPoint(1.0f, 2.0f, 1.0f, pr, pg, pb, pa); // 7
 
     // 0
     Engine::Buffers::ConnectPointsLine(0, 1);
@@ -870,12 +914,12 @@ void CreateCube()
 
 void CreatePyramid()
 {
-    Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 0
-    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 1
-    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 2
-    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 3
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
+    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 1
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 2
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.0f, pr, pg, pb, pa); // 3
 
-    Engine::Buffers::AddPoint(0.0f, 2.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 4
+    Engine::Buffers::AddPoint(0.0f, 2.0f, 0.0f, pr, pg, pb, pa); // 4
 
 
     // 0
@@ -896,11 +940,11 @@ void CreatePyramid()
 
 void CreateTetraheadron()
 {
-    Engine::Buffers::AddPoint(-1.0f, 0.0f, -0.8f, 1.0f, 1.0f, 1.0f, 1.0f); // 0
-    Engine::Buffers::AddPoint(1.0f, 0.0f, -0.8f, 1.0f, 1.0f, 1.0f, 1.0f); // 1
-    Engine::Buffers::AddPoint(0.0f, 0.0f, 1.3f, 1.0f, 1.0f, 1.0f, 1.0f); // 2
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, -0.8f, pr, pg, pb, pa); // 0
+    Engine::Buffers::AddPoint(1.0f, 0.0f, -0.8f, pr, pg, pb, pa); // 1
+    Engine::Buffers::AddPoint(0.0f, 0.0f, 1.3f, pr, pg, pb, pa); // 2
 
-    Engine::Buffers::AddPoint(0.0f, 2.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f); // 3
+    Engine::Buffers::AddPoint(0.0f, 2.0f, 0.0f, pr, pg, pb, pa); // 3
 
 
     // 0
