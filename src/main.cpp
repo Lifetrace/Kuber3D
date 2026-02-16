@@ -69,6 +69,10 @@ bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_wi
 #include "imgui_impl_opengl3.h"
 #include "ImGui_Style.hpp"
 
+#include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/norm.hpp>
+
 #include <unordered_map>
 #include <algorithm>
 #include <functional>
@@ -279,7 +283,7 @@ int main()
             SetEditMode();
         }
 
-        if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode)
+        if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode && selectedOrder.size() == 4)
         {
             if (!ExtendUsingCutLine())
             {
@@ -619,8 +623,7 @@ int main()
     return 0;
 }
 
-void SetEditMode()
-{
+void SetEditMode(){
     if (!IsEditMode)
     {
         IsEditMode = true;
@@ -653,14 +656,12 @@ void Select(int index)
     selectedOrder.push_back(index);
 }
 
-void DeSelect(int index)
-{
+void DeSelect(int index){
     if (index < 0 || index >= (int)Engine::Buffers::positions.size())
         return;
 
     auto it = selectedPointsByColor.find(index);
-    if (it != selectedPointsByColor.end())
-    {
+    if (it != selectedPointsByColor.end()){
         const glm::vec4 &c = it->second;
         Engine::Buffers::ChangeColor(index, c.r, c.g, c.b, c.a);
         selectedPointsByColor.erase(it);
@@ -673,10 +674,8 @@ void DeSelect(int index)
         selectedOrder.end());
 }
 
-void DesAllSelected()
-{
-    for (auto &[index, c] : selectedPointsByColor)
-    {
+void DesAllSelected(){
+    for (auto &[index, c] : selectedPointsByColor){
         Engine::Buffers::ChangeColor(index, c.r, c.g, c.b, c.a);
     }
 
@@ -685,8 +684,7 @@ void DesAllSelected()
     selectedOrder.clear();
 }
 
-void DelAllSelected()
-{
+void DelAllSelected(){
     std::vector<int> selectedIdx = selectedOrder;
     SortUnique(selectedIdx);
 
@@ -696,16 +694,14 @@ void DelAllSelected()
     const int n = (int)Engine::Buffers::positions.size();
 
     std::vector<char> removed(n, 0);
-    for (int idx : selectedIdx)
-    {
+    for (int idx : selectedIdx){
         if (idx >= 0 && idx < n)
             removed[idx] = 1;
     }
 
     std::vector<int> mapOldToNew(n, -1);
     int newN = 0;
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++){
         if (!removed[i])
             mapOldToNew[i] = newN++;
     }
@@ -715,10 +711,8 @@ void DelAllSelected()
     std::vector<glm::vec4> newCol;
     newCol.reserve(newN);
 
-    for (int i = 0; i < n; i++)
-    {
-        if (!removed[i])
-        {
+    for (int i = 0; i < n; i++){
+        if (!removed[i]){
             newPos.push_back(Engine::Buffers::positions[i]);
             newCol.push_back(Engine::Buffers::colors[i]);
         }
@@ -730,8 +724,7 @@ void DelAllSelected()
     std::vector<GLuint> newLines;
     newLines.reserve(Engine::Buffers::lineIndices.size());
 
-    for (size_t i = 0; i + 1 < Engine::Buffers::lineIndices.size(); i += 2)
-    {
+    for (size_t i = 0; i + 1 < Engine::Buffers::lineIndices.size(); i += 2){
         int a = (int)Engine::Buffers::lineIndices[i];
         int b = (int)Engine::Buffers::lineIndices[i + 1];
 
@@ -746,19 +739,16 @@ void DelAllSelected()
 
     Engine::Buffers::lineIndices = std::move(newLines);
 
-    if ((int)Engine::Buffers::connectedPoints.size() == n)
-    {
+    if ((int)Engine::Buffers::connectedPoints.size() == n){
         std::vector<std::vector<GLuint>> newAdj;
         newAdj.resize(newN);
 
-        for (int i = 0; i < n; i++)
-        {
+        for (int i = 0; i < n; i++){
             if (removed[i])
                 continue;
             const int ni = mapOldToNew[i];
 
-            for (GLuint nb : Engine::Buffers::connectedPoints[i])
-            {
+            for (GLuint nb : Engine::Buffers::connectedPoints[i]){
                 int j = (int)nb;
                 if (j < 0 || j >= n)
                     continue;
@@ -783,16 +773,14 @@ void DelAllSelected()
     Engine::Buffers::Update();
 }
 
-void ToggleSelect(int index)
-{
+void ToggleSelect(int index){
     if (selectedPointsByColor.contains(index))
         DeSelect(index);
     else
         Select(index);
 }
 
-int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double my, const glm::mat4 &view, const glm::mat4 &proj, int w, int h, float radiusPx)
-{
+int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double my, const glm::mat4 &view, const glm::mat4 &proj, int w, int h, float radiusPx){
     int best = -1;
     float bestD2 = radiusPx * radiusPx;
 
@@ -815,8 +803,7 @@ int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double
     return best;
 }
 
-void CutLine(float p, float q)
-{
+void CutLine(float p, float q){
     if (selectedOrder.size() < 2)
         return;
     if (q == 0)
@@ -843,33 +830,25 @@ void CutLine(float p, float q)
     Engine::Buffers::ConnectPointsLine(b, newIndex);
 }
 
-int IndexByPos(const glm::vec3 &pos)
-{
+int IndexByPos(const glm::vec3 &pos){
     const float eps = 1e-5f;
 
-    for (int i = 0; i < (int)Engine::Buffers::positions.size(); ++i)
-    {
+    for (int i = 0; i < (int)Engine::Buffers::positions.size(); ++i){
         const glm::vec3 &p = Engine::Buffers::positions[i];
 
-        if (fabs(p.x - pos.x) < eps && fabs(p.y - pos.y) < eps && fabs(p.z - pos.z) < eps)
-        {
+        if (fabs(p.x - pos.x) < eps && fabs(p.y - pos.y) < eps && fabs(p.z - pos.z) < eps){
             return i;
         }
     }
     return -1;
 }
 
-static void SortUnique(std::vector<int> &v)
-{
+static void SortUnique(std::vector<int> &v){
     std::sort(v.begin(), v.end());
     v.erase(std::unique(v.begin(), v.end()), v.end());
 }
 
-bool RayPlane(
-    const glm::vec3 &O, const glm::vec3 &D,
-    const glm::vec3 &A, const glm::vec3 &n,
-    glm::vec3 &hit)
-{
+bool RayPlane(const glm::vec3 &O, const glm::vec3 &D, const glm::vec3 &A, const glm::vec3 &n, glm::vec3 &hit){
     float denom = glm::dot(n, D);
     if (std::abs(denom) < 1e-6f)
         return false;
@@ -882,117 +861,115 @@ bool RayPlane(
     return true;
 }
 
-bool ExtendUsingCutLine()
-{
+static bool RayIntersectsSegment3D(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& D, glm::vec3& outHit, float eps = 1e-5f){
+    glm::vec3 R = B - A;
+    glm::vec3 S = D - C;
+    glm::vec3 W0 = A - C;
 
-    if (selectedOrder.size() != 3)
+    float a = glm::dot(R, R);
+    float b = glm::dot(R, S);
+    float c = glm::dot(S, S);
+    float d = glm::dot(R, W0);
+    float e = glm::dot(S, W0);
+
+    if (a <= eps){
+        glm::vec3 v = A - C;
+        float ss = c;
+
+        if (ss <= eps){
+
+            if (glm::length2(A - C) <= eps*eps){ 
+                outHit = A; return true; 
+            }
+
+            return false;
+        }
+
+        float u = glm::dot(v, S) / ss;
+        if (u < 0.0f || u > 1.0f) return false;
+
+        glm::vec3 Q = C + u * S;
+
+        if (glm::length2(Q - A) <= eps*eps){ 
+            outHit = A; return true; 
+        }
+        return false;
+    }
+
+    float den = a * c - b * b;
+
+    if (glm::abs(den) <= eps) {
+
+        glm::vec3 crossRC = glm::cross((C - A), R);
+        if (glm::length2(crossRC) > (eps*eps) * a) {
+            return false; 
+        }
+
+        float tC = glm::dot(C - A, R) / a;
+        float tD = glm::dot(D - A, R) / a;
+
+        float tMin = glm::min(tC, tD);
+        float tMax = glm::max(tC, tD);
+
+        if (tMax < 0.0f) return false; 
+
+        float tHit = (tMin >= 0.0f) ? tMin : 0.0f;
+
+        if (tHit < tMin - eps || tHit > tMax + eps) return false;
+
+        outHit = A + tHit * R;
+        return true;
+    }
+
+    float t = (b * e - c * d) / den;
+    float u = (a * e - b * d) / den;
+
+    if (t < 0.0f) return false;
+    if (u < 0.0f || u > 1.0f) return false;
+
+    glm::vec3 P = A + t * R;
+    glm::vec3 Q = C + u * S;
+
+    if (glm::length2(P - Q) > eps * eps) return false;
+
+    outHit = (P + Q) * 0.5f; 
+    return true;
+}
+
+bool ExtendUsingCutLine(){
+    if (selectedOrder.size() != 4)
         return false;
 
     int ia = selectedOrder[0];
     int ib = selectedOrder[1];
     int ic = selectedOrder[2];
+    int id = selectedOrder[3];
 
-    if (ia == ib || ia == ic || ib == ic)
+    if (ia == ib || ia == ic || ia == id || ib == ic || ib == id || ic == id)
         return false;
 
     glm::vec3 A = Engine::Buffers::positions[ia];
     glm::vec3 B = Engine::Buffers::positions[ib];
     glm::vec3 C = Engine::Buffers::positions[ic];
+    glm::vec3 D = Engine::Buffers::positions[id];
 
-    glm::vec3 u3 = B - A;
-    float ul = glm::length(u3);
-    if (ul < 1e-6f)
+    glm::vec3 hit;
+    
+    if (!RayIntersectsSegment3D(A, B, C, D, hit, 1e-5f))
         return false;
-    u3 /= ul;
 
-    glm::vec3 n = glm::cross(B - A, C - A);
-    float nl = glm::length(n);
-    if (nl < 1e-6f)
-        return false;
-    n /= nl;
 
-    glm::vec3 v3 = glm::normalize(glm::cross(n, u3));
-
-    auto To2 = [&](const glm::vec3 &X) -> glm::vec2
-    {
-        glm::vec3 d = X - A;
-        return {glm::dot(d, u3), glm::dot(d, v3)};
-    };
-
-    glm::vec2 A2 = To2(A);
-    glm::vec2 B2 = To2(B);
-    glm::vec2 O = B2;
-    glm::vec2 dir(1.0f, 0.0f);
+    Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, pr, pg, pb, pa);
 
     Engine::Buffers::ConnectPointsLine(ia, ib);
-
-    int bestC = -1, bestD = -1;
-    float bestT = 1e30f;
-    float bestU = 0.0f;
-
-    auto &li = Engine::Buffers::lineIndices;
-    for (size_t i = 0; i + 1 < li.size(); i += 2)
-    {
-        int cIdx = (int)li[i];
-        int dIdx = (int)li[i + 1];
-
-        if ((cIdx == ia && dIdx == ib) || (cIdx == ib && dIdx == ia))
-            continue;
-        if (cIdx == ia || cIdx == ib || dIdx == ia || dIdx == ib)
-            continue;
-
-        glm::vec3 C3 = Engine::Buffers::positions[cIdx];
-        glm::vec3 D3 = Engine::Buffers::positions[dIdx];
-
-        float dc = std::abs(glm::dot(n, (C3 - A)));
-        float dd = std::abs(glm::dot(n, (D3 - A)));
-        if (dc > 1e-3f || dd > 1e-3f)
-            continue;
-
-        glm::vec2 C2 = To2(C3);
-        glm::vec2 D2 = To2(D3);
-
-        float t, u;
-        if (!Engine::Cross::RaySeg2D(O, dir, C2, D2, t, u))
-            continue;
-
-        if (t < bestT)
-        {
-            bestT = t;
-            bestU = u;
-            bestC = cIdx;
-            bestD = dIdx;
-        }
-    }
-
-    if (bestC == -1)
-        return false;
-
-    auto saved = selectedOrder;
-    selectedOrder = {bestC, bestD};
-
-    float u = glm::clamp(bestU, 0.0f, 1.0f);
-    float q = 1000.0f;
-    float p = std::round(u * q);
-
-    int oldCount = (int)Engine::Buffers::positions.size();
-    CutLine(p, q);
-
-    selectedOrder = saved;
-
-    if ((int)Engine::Buffers::positions.size() == oldCount)
-        return false;
-
-    int newIndex = (int)Engine::Buffers::positions.size() - 1;
-
-    Engine::Buffers::ConnectPointsLine(ib, newIndex);
+    Engine::Buffers::ConnectPointsLine(ib, Engine::Buffers::positions.size()-1);
+    
 
     Engine::Buffers::Update();
     return true;
 }
 
-void CreateCube()
-{
+void CreateCube(){
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
     Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa);  // 1
     Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa);  // 2
@@ -1038,8 +1015,7 @@ void CreateCube()
     Engine::Buffers::Update();
 }
 
-void CreatePyramid()
-{
+void CreatePyramid(){
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
     Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa);  // 1
     Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa);  // 2
@@ -1073,8 +1049,7 @@ void CreatePyramid()
     Engine::Buffers::Update();
 }
 
-void CreateTetraheadron()
-{
+void CreateTetraheadron(){
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -0.8f, pr, pg, pb, pa); // 0
     Engine::Buffers::AddPoint(1.0f, 0.0f, -0.8f, pr, pg, pb, pa);  // 1
     Engine::Buffers::AddPoint(0.0f, 0.0f, 1.3f, pr, pg, pb, pa);   // 2
@@ -1102,8 +1077,7 @@ void CreateTetraheadron()
     Engine::Buffers::Update();
 }
 
-void CreateCircle(int N, float R, float cx, float cy, float cz)
-{
+void CreateCircle(int N, float R, float cx, float cy, float cz){
     const float TWO_PI = 6.283185307179586f;
 
     for (int i = 0; i < N; ++i)
@@ -1123,3 +1097,4 @@ void CreateCircle(int N, float R, float cx, float cy, float cz)
         }
     }
 }
+
