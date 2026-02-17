@@ -77,6 +77,7 @@ bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_wi
 #include <algorithm>
 #include <functional>
 
+int Theme = 0;
 bool IsEditMode = false;
 bool Split = false;
 int shape = 8;
@@ -146,8 +147,6 @@ int main()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
 
-    Engine::Style::ApplyKuberOpaqueTheme();
-
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
@@ -190,6 +189,15 @@ int main()
         ImGui::NewFrame();
 
         ImGuiIO &io = ImGui::GetIO();
+
+        if (Theme == 1)
+        {
+            Engine::Style::ApplyKuberLightTheme();
+        }
+        else
+        {
+            Engine::Style::ApplyKuberDarkTheme();
+        }
 
         float smooth = 0.10f;
         cam.target = glm::mix(cam.target, targetH, smooth);
@@ -454,8 +462,8 @@ int main()
                     Engine::Buffers::DeleteAll();
                 }
             }
-            ImGui::SetItemTooltip("Tap to delete all points (need to be in edit mode)");
             ImGui::PopStyleColor();
+            ImGui::SetItemTooltip("Tap to delete all points (need to be in edit mode)");
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -464,35 +472,35 @@ int main()
             {
                 if (ImGui::BeginTabItem("Cube"))
                 {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    ImGui::PopStyleColor();
                     ImGui::Text("Ctrl + E for Cube creation");
                     shape = 8;
                     ImGui::EndTabItem();
-                    ImGui::PopStyleColor();
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
                 if (ImGui::BeginTabItem("Pyramid"))
                 {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    ImGui::PopStyleColor();
                     ImGui::Text("Ctrl + E for Pyramid creation");
                     shape = 5;
                     ImGui::EndTabItem();
-                    ImGui::PopStyleColor();
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
                 if (ImGui::BeginTabItem("Tetrahedron"))
                 {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    ImGui::PopStyleColor();
                     ImGui::Text("Ctrl + E for Tetrahedron creation");
                     shape = 4;
                     ImGui::EndTabItem();
-                    ImGui::PopStyleColor();
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
                 if (ImGui::BeginTabItem("Circle"))
                 {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                    ImGui::PopStyleColor();
                     ImGui::Text("Ctrl + E for Circle creation");
                     shape = 1;
                     ImGui::EndTabItem();
-                    ImGui::PopStyleColor();
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
                 ImGui::EndTabBar();
             }
@@ -555,7 +563,22 @@ int main()
             // ImGui::Separator();
 
             ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            if (ImGui::Button("Change theme", ImVec2(-1, 0)))
+            {
+                Theme = !Theme;
+                if (Theme == 1)
+                {
+                    glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+                    IsEditMode = false;
+                }
+                else
+                {
+                    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+                    IsEditMode = false;
+                }
+            }
+            ImGui::PopStyleColor();
             ImGui::End();
         }
 
@@ -611,16 +634,33 @@ int main()
     return 0;
 }
 
-void SetEditMode(){
-    if (!IsEditMode)
+void SetEditMode()
+{
+    if (Theme == 1)
     {
-        IsEditMode = true;
-        glClearColor(0.9f, 0.9f, 1.0f, 1.0f);
+        if (!IsEditMode)
+        {
+            IsEditMode = true;
+            glClearColor(0.9f, 0.9f, 1.0f, 1.0f);
+        }
+        else
+        {
+            IsEditMode = false;
+            glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+        }
     }
     else
     {
-        IsEditMode = false;
-        glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+        if (!IsEditMode)
+        {
+            IsEditMode = true;
+            glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
+        }
+        else
+        {
+            IsEditMode = false;
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        }
     }
 }
 
@@ -644,12 +684,14 @@ void Select(int index)
     selectedOrder.push_back(index);
 }
 
-void DeSelect(int index){
+void DeSelect(int index)
+{
     if (index < 0 || index >= (int)Engine::Buffers::positions.size())
         return;
 
     auto it = selectedPointsByColor.find(index);
-    if (it != selectedPointsByColor.end()){
+    if (it != selectedPointsByColor.end())
+    {
         const glm::vec4 &c = it->second;
         Engine::Buffers::ChangeColor(index, c.r, c.g, c.b, c.a);
         selectedPointsByColor.erase(it);
@@ -662,8 +704,10 @@ void DeSelect(int index){
         selectedOrder.end());
 }
 
-void DesAllSelected(){
-    for (auto &[index, c] : selectedPointsByColor){
+void DesAllSelected()
+{
+    for (auto &[index, c] : selectedPointsByColor)
+    {
         Engine::Buffers::ChangeColor(index, c.r, c.g, c.b, c.a);
     }
 
@@ -672,7 +716,8 @@ void DesAllSelected(){
     selectedOrder.clear();
 }
 
-void DelAllSelected(){
+void DelAllSelected()
+{
     std::vector<int> selectedIdx = selectedOrder;
     SortUnique(selectedIdx);
 
@@ -682,14 +727,16 @@ void DelAllSelected(){
     const int n = (int)Engine::Buffers::positions.size();
 
     std::vector<char> removed(n, 0);
-    for (int idx : selectedIdx){
+    for (int idx : selectedIdx)
+    {
         if (idx >= 0 && idx < n)
             removed[idx] = 1;
     }
 
     std::vector<int> mapOldToNew(n, -1);
     int newN = 0;
-    for (int i = 0; i < n; i++){
+    for (int i = 0; i < n; i++)
+    {
         if (!removed[i])
             mapOldToNew[i] = newN++;
     }
@@ -699,8 +746,10 @@ void DelAllSelected(){
     std::vector<glm::vec4> newCol;
     newCol.reserve(newN);
 
-    for (int i = 0; i < n; i++){
-        if (!removed[i]){
+    for (int i = 0; i < n; i++)
+    {
+        if (!removed[i])
+        {
             newPos.push_back(Engine::Buffers::positions[i]);
             newCol.push_back(Engine::Buffers::colors[i]);
         }
@@ -712,7 +761,8 @@ void DelAllSelected(){
     std::vector<GLuint> newLines;
     newLines.reserve(Engine::Buffers::lineIndices.size());
 
-    for (size_t i = 0; i + 1 < Engine::Buffers::lineIndices.size(); i += 2){
+    for (size_t i = 0; i + 1 < Engine::Buffers::lineIndices.size(); i += 2)
+    {
         int a = (int)Engine::Buffers::lineIndices[i];
         int b = (int)Engine::Buffers::lineIndices[i + 1];
 
@@ -727,16 +777,19 @@ void DelAllSelected(){
 
     Engine::Buffers::lineIndices = std::move(newLines);
 
-    if ((int)Engine::Buffers::connectedPoints.size() == n){
+    if ((int)Engine::Buffers::connectedPoints.size() == n)
+    {
         std::vector<std::vector<GLuint>> newAdj;
         newAdj.resize(newN);
 
-        for (int i = 0; i < n; i++){
+        for (int i = 0; i < n; i++)
+        {
             if (removed[i])
                 continue;
             const int ni = mapOldToNew[i];
 
-            for (GLuint nb : Engine::Buffers::connectedPoints[i]){
+            for (GLuint nb : Engine::Buffers::connectedPoints[i])
+            {
                 int j = (int)nb;
                 if (j < 0 || j >= n)
                     continue;
@@ -761,14 +814,16 @@ void DelAllSelected(){
     Engine::Buffers::Update();
 }
 
-void ToggleSelect(int index){
+void ToggleSelect(int index)
+{
     if (selectedPointsByColor.contains(index))
         DeSelect(index);
     else
         Select(index);
 }
 
-int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double my, const glm::mat4 &view, const glm::mat4 &proj, int w, int h, float radiusPx){
+int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double my, const glm::mat4 &view, const glm::mat4 &proj, int w, int h, float radiusPx)
+{
     int best = -1;
     float bestD2 = radiusPx * radiusPx;
 
@@ -791,7 +846,8 @@ int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double
     return best;
 }
 
-void CutLine(float p, float q){
+void CutLine(float p, float q)
+{
     if (selectedOrder.size() < 2)
         return;
     if (q == 0)
@@ -818,25 +874,30 @@ void CutLine(float p, float q){
     Engine::Buffers::ConnectPointsLine(b, newIndex);
 }
 
-int IndexByPos(const glm::vec3 &pos){
+int IndexByPos(const glm::vec3 &pos)
+{
     const float eps = 1e-5f;
 
-    for (int i = 0; i < (int)Engine::Buffers::positions.size(); ++i){
+    for (int i = 0; i < (int)Engine::Buffers::positions.size(); ++i)
+    {
         const glm::vec3 &p = Engine::Buffers::positions[i];
 
-        if (fabs(p.x - pos.x) < eps && fabs(p.y - pos.y) < eps && fabs(p.z - pos.z) < eps){
+        if (fabs(p.x - pos.x) < eps && fabs(p.y - pos.y) < eps && fabs(p.z - pos.z) < eps)
+        {
             return i;
         }
     }
     return -1;
 }
 
-static void SortUnique(std::vector<int> &v){
+static void SortUnique(std::vector<int> &v)
+{
     std::sort(v.begin(), v.end());
     v.erase(std::unique(v.begin(), v.end()), v.end());
 }
 
-bool RayPlane(const glm::vec3 &O, const glm::vec3 &D, const glm::vec3 &A, const glm::vec3 &n, glm::vec3 &hit){
+bool RayPlane(const glm::vec3 &O, const glm::vec3 &D, const glm::vec3 &A, const glm::vec3 &n, glm::vec3 &hit)
+{
     float denom = glm::dot(n, D);
     if (std::abs(denom) < 1e-6f)
         return false;
@@ -849,7 +910,8 @@ bool RayPlane(const glm::vec3 &O, const glm::vec3 &D, const glm::vec3 &A, const 
     return true;
 }
 
-static bool RayIntersectsSegment3D(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& D, glm::vec3& outHit, float eps = 1e-5f){
+static bool RayIntersectsSegment3D(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C, const glm::vec3 &D, glm::vec3 &outHit, float eps = 1e-5f)
+{
     glm::vec3 R = B - A;
     glm::vec3 S = D - C;
     glm::vec3 W0 = A - C;
@@ -860,37 +922,46 @@ static bool RayIntersectsSegment3D(const glm::vec3& A, const glm::vec3& B, const
     float d = glm::dot(R, W0);
     float e = glm::dot(S, W0);
 
-    if (a <= eps){
+    if (a <= eps)
+    {
         glm::vec3 v = A - C;
         float ss = c;
 
-        if (ss <= eps){
+        if (ss <= eps)
+        {
 
-            if (glm::length2(A - C) <= eps*eps){ 
-                outHit = A; return true; 
+            if (glm::length2(A - C) <= eps * eps)
+            {
+                outHit = A;
+                return true;
             }
 
             return false;
         }
 
         float u = glm::dot(v, S) / ss;
-        if (u < 0.0f || u > 1.0f) return false;
+        if (u < 0.0f || u > 1.0f)
+            return false;
 
         glm::vec3 Q = C + u * S;
 
-        if (glm::length2(Q - A) <= eps*eps){ 
-            outHit = A; return true; 
+        if (glm::length2(Q - A) <= eps * eps)
+        {
+            outHit = A;
+            return true;
         }
         return false;
     }
 
     float den = a * c - b * b;
 
-    if (glm::abs(den) <= eps) {
+    if (glm::abs(den) <= eps)
+    {
 
         glm::vec3 crossRC = glm::cross((C - A), R);
-        if (glm::length2(crossRC) > (eps*eps) * a) {
-            return false; 
+        if (glm::length2(crossRC) > (eps * eps) * a)
+        {
+            return false;
         }
 
         float tC = glm::dot(C - A, R) / a;
@@ -899,11 +970,13 @@ static bool RayIntersectsSegment3D(const glm::vec3& A, const glm::vec3& B, const
         float tMin = glm::min(tC, tD);
         float tMax = glm::max(tC, tD);
 
-        if (tMax < 0.0f) return false; 
+        if (tMax < 0.0f)
+            return false;
 
         float tHit = (tMin >= 0.0f) ? tMin : 0.0f;
 
-        if (tHit < tMin - eps || tHit > tMax + eps) return false;
+        if (tHit < tMin - eps || tHit > tMax + eps)
+            return false;
 
         outHit = A + tHit * R;
         return true;
@@ -912,19 +985,23 @@ static bool RayIntersectsSegment3D(const glm::vec3& A, const glm::vec3& B, const
     float t = (b * e - c * d) / den;
     float u = (a * e - b * d) / den;
 
-    if (t < 0.0f) return false;
-    if (u < 0.0f || u > 1.0f) return false;
+    if (t < 0.0f)
+        return false;
+    if (u < 0.0f || u > 1.0f)
+        return false;
 
     glm::vec3 P = A + t * R;
     glm::vec3 Q = C + u * S;
 
-    if (glm::length2(P - Q) > eps * eps) return false;
+    if (glm::length2(P - Q) > eps * eps)
+        return false;
 
-    outHit = (P + Q) * 0.5f; 
+    outHit = (P + Q) * 0.5f;
     return true;
 }
 
-bool ExtendUsingCutLine(){
+bool ExtendUsingCutLine()
+{
     if (selectedOrder.size() != 4)
         return false;
 
@@ -942,22 +1019,21 @@ bool ExtendUsingCutLine(){
     glm::vec3 D = Engine::Buffers::positions[id];
 
     glm::vec3 hit;
-    
+
     if (!RayIntersectsSegment3D(A, B, C, D, hit, 1e-5f))
         return false;
-
 
     Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, pr, pg, pb, pa);
 
     Engine::Buffers::ConnectPointsLine(ia, ib);
-    Engine::Buffers::ConnectPointsLine(ib, Engine::Buffers::positions.size()-1);
-    
+    Engine::Buffers::ConnectPointsLine(ib, Engine::Buffers::positions.size() - 1);
 
     Engine::Buffers::Update();
     return true;
 }
 
-void CreateCube(){
+void CreateCube()
+{
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
     Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa);  // 1
     Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa);  // 2
@@ -1003,7 +1079,8 @@ void CreateCube(){
     Engine::Buffers::Update();
 }
 
-void CreatePyramid(){
+void CreatePyramid()
+{
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
     Engine::Buffers::AddPoint(1.0f, 0.0f, -1.0f, pr, pg, pb, pa);  // 1
     Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.0f, pr, pg, pb, pa);  // 2
@@ -1037,7 +1114,8 @@ void CreatePyramid(){
     Engine::Buffers::Update();
 }
 
-void CreateTetraheadron(){
+void CreateTetraheadron()
+{
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -0.8f, pr, pg, pb, pa); // 0
     Engine::Buffers::AddPoint(1.0f, 0.0f, -0.8f, pr, pg, pb, pa);  // 1
     Engine::Buffers::AddPoint(0.0f, 0.0f, 1.3f, pr, pg, pb, pa);   // 2
@@ -1065,7 +1143,8 @@ void CreateTetraheadron(){
     Engine::Buffers::Update();
 }
 
-void CreateCircle(int N, float R, float cx, float cy, float cz){
+void CreateCircle(int N, float R, float cx, float cy, float cz)
+{
     const float TWO_PI = 6.283185307179586f;
 
     for (int i = 0; i < N; ++i)
@@ -1085,4 +1164,3 @@ void CreateCircle(int N, float R, float cx, float cy, float cz){
         }
     }
 }
-

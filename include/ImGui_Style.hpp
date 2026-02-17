@@ -3,6 +3,7 @@
 namespace Engine {
     class Style {
     public:
-        static void ApplyKuberOpaqueTheme();
+        static void ApplyKuberLightTheme();
+        static void ApplyKuberDarkTheme();
     };
 }
