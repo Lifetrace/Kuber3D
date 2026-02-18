@@ -18,6 +18,12 @@ namespace Engine{
             v.erase(std::remove(v.begin(), v.end(), x), v.end());
         }
     public:
+        // base dots color
+        static float inline pr = 0.0f;
+        static float inline pg = 0.2f;
+        static float inline pb = 0.6f;
+        static float inline pa = 1.0f;
+        
         static void Update();
         static inline GLuint vao, vboPos, vboCol, eboFaces;
 

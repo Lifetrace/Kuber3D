@@ -118,11 +118,10 @@ void CreatePyramid();
 void CreateTetraheadron();
 void CreateCircle(int N, float R, float cx, float cy, float cz);
 
-// base dots color
-float pr = 0.0f;
-float pg = 0.2f;
-float pb = 0.6f;
-float pa = 1.0f;
+float pr = Engine::Buffers::pr;
+float pg = Engine::Buffers::pg;
+float pb = Engine::Buffers::pb;
+float pa = Engine::Buffers::pa;
 
 int main()
 {
@@ -150,18 +149,18 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
-    ImFont *font = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
-    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
+    ImFont *font = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
+    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
     // io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
     bool show_demo_window = false;
 
-    Engine::Shader *shaderBase = Engine::load_shader("../../assets/shaders/basic.vert", "../../assets/shaders/basic.frag");
+    Engine::Shader *shaderBase = Engine::load_shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
     if (!shaderBase)
         return -1;
 
-    Engine::Shader *shaderLines = Engine::load_shader("../../assets/shaders/line.vert", "../../assets/shaders/line.frag", "../../assets/shaders/line.geom");
+    Engine::Shader *shaderLines = Engine::load_shader("assets/shaders/line.vert", "assets/shaders/line.frag", "assets/shaders/line.geom");
     if (!shaderLines)
         return -1;
 

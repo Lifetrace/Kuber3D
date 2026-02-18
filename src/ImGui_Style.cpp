@@ -1,6 +1,6 @@
 #include "ImGui_Style.hpp"
 #include "imgui.h"
-
+#include "Buffers.hpp"
 
 
 void Engine::Style::ApplyKuberLightTheme()
@@ -46,6 +46,15 @@ void Engine::Style::ApplyKuberLightTheme()
     style.FrameRounding = 5.0f;
     style.PopupRounding = 5.0f;
     style.GrabRounding = 5.0f;
+
+    Engine::Buffers::pr = 0.0f;
+    Engine::Buffers::pg = 0.2f;
+    Engine::Buffers::pb = 0.6f;
+    Engine::Buffers::pa = 1.0f;
+
+    for (int i; i < Engine::Buffers::positions.size(); i++){
+        Engine::Buffers::ChangeColor(i, Engine::Buffers::pr, Engine::Buffers::pg, Engine::Buffers::pb, Engine::Buffers::pa);
+    }
 }
 
 void Engine::Style::ApplyKuberDarkTheme()
@@ -91,4 +100,13 @@ void Engine::Style::ApplyKuberDarkTheme()
     style.FrameRounding = 5.0f;
     style.PopupRounding = 5.0f;
     style.GrabRounding = 5.0f;
+
+    Engine::Buffers::pr = 1.0f;
+    Engine::Buffers::pg = 1.0f;
+    Engine::Buffers::pb = 1.0f;
+    Engine::Buffers::pa = 1.0f;
+
+    for (int i; i < Engine::Buffers::positions.size(); i++){
+        Engine::Buffers::ChangeColor(i, Engine::Buffers::pr, Engine::Buffers::pg, Engine::Buffers::pb, Engine::Buffers::pa);
+    }
 }
