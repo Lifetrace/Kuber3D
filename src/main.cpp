@@ -87,37 +87,37 @@ std::vector<int> selectedOrder;
 Engine::Camera cam;
 glm::vec3 targetH = cam.target;
 
-void SetSplit();
-
+//Set Edit Mode
 void SetEditMode();
 
+//User selecting
 void Select(int index);
-
 void DeSelect(int index);
-
 void DesAllSelected();
-
 void DelAllSelected();
-
 void ToggleSelect(int index);
 
-int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double my, const glm::mat4 &view, const glm::mat4 &proj, int w, int h, float radiusPx = 10.0f);
-
+//Operations
+void SetSplit();
 void CutLine(float p, float q);
+bool ExtendUsingCutLine();
+void PerpToPlane();
 
-int IndexByPos(const glm::vec3 &pos);
-
+//Vector Maths
+int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double my, const glm::mat4 &view, const glm::mat4 &proj, int w, int h, float radiusPx = 10.0f);
 static void SortUnique(std::vector<int> &v);
-
 bool RayPlane(const glm::vec3 &O, const glm::vec3 &D, const glm::vec3 &A, const glm::vec3 &n, glm::vec3 &hit);
 
-bool ExtendUsingCutLine();
-
+//Figures
 void CreateCube();
 void CreatePyramid();
 void CreateTetraheadron();
 void CreateCircle(int N, float R, float cx, float cy, float cz);
 
+// Future
+int IndexByPos(const glm::vec3 &pos);
+
+//Standart points colors
 float pr = Engine::Buffers::pr;
 float pg = Engine::Buffers::pg;
 float pb = Engine::Buffers::pb;
@@ -214,6 +214,10 @@ int main()
             cam.yaw += Engine::Events::deltaX * 0.007f;
             cam.pitch -= Engine::Events::deltaY * 0.007f;
             cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
+        }
+
+        if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && selectedOrder.size() == 4){
+            PerpToPlane();
         }
 
         if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode)
@@ -533,7 +537,11 @@ int main()
             ImGui::Separator();
 
             ImGui::Text("G to create line in face");
-            ImGui::SetItemTooltip("Select 3 points. Begining => direction => face dot");
+            ImGui::SetItemTooltip("Select 4 points. Begining => direction => line segment (2 points)");
+            ImGui::Separator();
+
+            ImGui::Text("R to create perpendicular to plane");
+            ImGui::SetItemTooltip("Select 1 point that doesn`t lie in plane => Select 3 points that define a plane");
             ImGui::Separator();
 
             /*if (ImGui::Button("Filling", ImVec2(-1, 0)))
@@ -1162,4 +1170,40 @@ void CreateCircle(int N, float R, float cx, float cy, float cz)
             Engine::Buffers::ConnectPointsLine(N - 1, 0);
         }
     }
+}
+
+void PerpToPlane(){
+    int id = selectedOrder[0];
+    int ia = selectedOrder[1];
+    int ib = selectedOrder[2];
+    int ic = selectedOrder[3];
+
+    glm::vec3 D = Engine::Buffers::positions[id];
+    glm::vec3 A = Engine::Buffers::positions[ia];
+    glm::vec3 B = Engine::Buffers::positions[ib];
+    glm::vec3 C = Engine::Buffers::positions[ic];
+
+    glm::vec3 u = B - A;
+    glm::vec3 v = C - A;
+
+    glm::vec3 n = glm::cross(u, v);
+
+    float nn = glm::dot(n, n);
+    if (nn < 1e-8f) return;
+
+    glm::vec3 w = D - A;
+
+    float t = glm::dot(w, n) / nn;
+
+    glm::vec3 perp = t * n;
+
+    glm::vec3 H = D - perp;
+
+    float dist = glm::length(perp);
+
+    int hIndex = (int)Engine::Buffers::positions.size();
+
+    Engine::Buffers::AddPoint(H.x, H.y, H.z, 1.0f, 1.0f, 0.0f, 1.0f);
+
+    Engine::Buffers::ConnectPointsLine(id, hIndex);
 }
