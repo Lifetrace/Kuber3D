@@ -359,7 +359,7 @@ int main()
         // Color Selected Points
         for (const auto &[index, col] : selectedPointsByColor)
         {
-            Engine::Buffers::ChangeColor(index, 0.5f, 0.5f, 1.0f, 1.0f);
+            Engine::Buffers::ChangeColor(index, 1.0f, 0.8f, 0.0f, 1.0f);
         }
 
         // Defence
