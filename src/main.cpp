@@ -862,8 +862,6 @@ void CutLine(float p, float q)
 
     Engine::Buffers::DisConnectPointsLine(selectedOrder[0], selectedOrder[1]);
 
-    float t = p / q;
-
     const int a = selectedOrder[0];
     const int b = selectedOrder[1];
 
@@ -872,7 +870,7 @@ void CutLine(float p, float q)
     const glm::vec3 A = Engine::Buffers::positions[a];
     const glm::vec3 B = Engine::Buffers::positions[b];
 
-    const glm::vec3 R = A + (B - A) * t;
+    const glm::vec3 R = A + (B - A) * (p/(p+q));
 
     Engine::Buffers::AddPoint(R.x, R.y, R.z, pr, pg, pb, pa);
 
