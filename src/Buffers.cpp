@@ -46,9 +46,79 @@ void Engine::Buffers::AddPoint(float x, float y, float z, float r, float g, floa
     Update();
 }
 
-void Engine::Buffers::DeletePoint(int index){
+void Engine::Buffers::DeletePoint(int index)
+{
+    const int n = (int)positions.size();
+    if (index < 0 || index >= n) return;
+
     positions.erase(positions.begin() + index);
     colors.erase(colors.begin() + index);
+
+    std::vector<GLuint> newLineIndices;
+    newLineIndices.reserve(lineIndices.size());
+
+    for (size_t i = 0; i + 1 < lineIndices.size(); i += 2)
+    {
+        int a = (int)lineIndices[i];
+        int b = (int)lineIndices[i + 1];
+
+        if (a == index || b == index)
+            continue;
+
+        if (a > index) --a;
+        if (b > index) --b;
+
+        if (a < 0 || b < 0 || a == b) continue;
+        if (a >= (int)positions.size() || b >= (int)positions.size()) continue;
+
+        newLineIndices.push_back((GLuint)a);
+        newLineIndices.push_back((GLuint)b);
+    }
+
+    lineIndices.swap(newLineIndices);
+
+    std::vector<GLuint> newFaceIndices;
+    newFaceIndices.reserve(faceIndices.size());
+
+    for (size_t i = 0; i + 2 < faceIndices.size(); i += 3)
+    {
+        int a = (int)faceIndices[i];
+        int b = (int)faceIndices[i + 1];
+        int c = (int)faceIndices[i + 2];
+
+        if (a == index || b == index || c == index)
+            continue;
+
+        if (a > index) --a;
+        if (b > index) --b;
+        if (c > index) --c;
+
+        if (a < 0 || b < 0 || c < 0) continue;
+        if (a >= (int)positions.size() || b >= (int)positions.size() || c >= (int)positions.size()) continue;
+        if (a == b || b == c || a == c) continue;
+
+        newFaceIndices.push_back((GLuint)a);
+        newFaceIndices.push_back((GLuint)b);
+        newFaceIndices.push_back((GLuint)c);
+    }
+
+    faceIndices.swap(newFaceIndices);
+
+    connectedPoints.clear();
+    connectedPoints.resize(positions.size());
+
+    for (size_t i = 0; i + 1 < lineIndices.size(); i += 2)
+    {
+        const GLuint a = lineIndices[i];
+        const GLuint b = lineIndices[i + 1];
+
+        if (a >= connectedPoints.size() || b >= connectedPoints.size()) continue;
+        if (a == b) continue;
+
+        if (!HasNeighbor(connectedPoints[a], b)) connectedPoints[a].push_back(b);
+        if (!HasNeighbor(connectedPoints[b], a)) connectedPoints[b].push_back(a);
+    }
+
     Update();
 }
 
@@ -204,10 +274,13 @@ void Engine::Buffers::Destroy(){
     if (vao) glDeleteVertexArrays(1, &vao);
     if (vboPos) glDeleteBuffers(1, &vboPos);
     if (vboCol) glDeleteBuffers(1, &vboCol);
+    if(eboFaces) glDeleteBuffers(1, &eboFaces);
 
-    eboLines = vboPos = vboCol = vao = 0;
+    eboLines = eboFaces = vboPos = vboCol = vao = 0;
+    
     lineIndices.clear();
     positions.clear();
+    faceIndices.clear();
     colors.clear();
 }
 

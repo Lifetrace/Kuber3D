@@ -63,6 +63,7 @@ bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_wi
 #include "Ray.hpp"
 #include "Grid.hpp"
 #include "Cross.hpp"
+#include "Angle.hpp"
 #include "imgui.h"
 
 #include "imgui_impl_glfw.h"
@@ -77,51 +78,59 @@ bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_wi
 #include <algorithm>
 #include <functional>
 
+// Extra parameters
 int Theme = 0;
 bool IsEditMode = false;
 bool Split = false;
 int shape = 8;
+
+// Angles
+std::vector<Engine::Angle> angles;
+
+// Selections
 std::unordered_map<int, glm::vec4> selectedPointsByColor;
 std::unordered_map<int, glm::vec3> selectedPointsByCoords;
 std::vector<int> selectedOrder;
+
+// Camera
 Engine::Camera cam;
 glm::vec3 targetH = cam.target;
 
-//Set Edit Mode
+// Set Edit Mode
 void SetEditMode();
 
-//User selecting
+// User selecting
 void Select(int index);
 void DeSelect(int index);
 void DesAllSelected();
 void DelAllSelected();
 void ToggleSelect(int index);
 
-//Operations
+// Operations
 void SetSplit();
 void CutLine(float p, float q);
 bool ExtendUsingCutLine();
 void PerpToPlane();
 
-//Vector Maths
+// Vector Maths
 int PickPointByPixels(const std::vector<glm::vec3> &positions, double mx, double my, const glm::mat4 &view, const glm::mat4 &proj, int w, int h, float radiusPx = 10.0f);
 static void SortUnique(std::vector<int> &v);
-bool RayPlane(const glm::vec3 &O, const glm::vec3 &D, const glm::vec3 &A, const glm::vec3 &n, glm::vec3 &hit);
 
-//Figures
+// Figures
 void CreateCube();
 void CreatePyramid();
 void CreateTetraheadron();
-void CreateCircle(int N, float R, float cx, float cy, float cz);
+void CreateCircle(int N, float R, float cx, float cy, float cz); // in dev
 
 // Future
 int IndexByPos(const glm::vec3 &pos);
 
-//Standart points colors
+// Standart points colors
 float pr = Engine::Buffers::pr;
 float pg = Engine::Buffers::pg;
 float pb = Engine::Buffers::pb;
 float pa = Engine::Buffers::pa;
+
 
 int main()
 {
@@ -216,7 +225,8 @@ int main()
             cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
         }
 
-        if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && selectedOrder.size() == 4){
+        if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && selectedOrder.size() == 4)
+        {
             PerpToPlane();
         }
 
@@ -248,7 +258,7 @@ int main()
             Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, proj, view);
 
             glm::vec3 hit;
-            if (!RayPlane(ray.origin, ray.dir, A, n, hit))
+            if (!Engine::RayPlane(ray.origin, ray.dir, A, n, hit))
                 continue;
 
             Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, pr, pg, pb, pa);
@@ -276,12 +286,7 @@ int main()
                 Engine::Buffers::ConnectPointsLine(selectedOrder[0], selectedOrder[1]);
         }
 
-        // CutPoints
-        /*if (Engine::Events::jPressed(GLFW_KEY_S) && IsEditMode && selectedOrder.size() == 2)
-        {
-            CutLine(1.0f, 2.0f);
-        }
-        */
+        // Cutting
         if (Engine::Events::jPressed(GLFW_KEY_S))
         {
             SetSplit();
@@ -300,6 +305,16 @@ int main()
             {
                 continue;
             }
+        }
+
+        if (Engine::Events::jPressed(GLFW_KEY_A) && IsEditMode && selectedOrder.size() == 3)
+        {
+            Engine::Angle ang(selectedOrder[0], selectedOrder[1], selectedOrder[2]);
+            ang.active = true;
+
+            Engine::AngleUtils::RebuildAngleArc(ang, Engine::Buffers::positions, 40);
+
+            angles.push_back(ang);
         }
 
         if (Engine::Events::jPressed(GLFW_KEY_E) && IsEditMode &&
@@ -870,7 +885,7 @@ void CutLine(float p, float q)
     const glm::vec3 A = Engine::Buffers::positions[a];
     const glm::vec3 B = Engine::Buffers::positions[b];
 
-    const glm::vec3 R = A + (B - A) * (p/(p+q));
+    const glm::vec3 R = A + (B - A) * (p / (p + q));
 
     Engine::Buffers::AddPoint(R.x, R.y, R.z, pr, pg, pb, pa);
 
@@ -899,20 +914,6 @@ static void SortUnique(std::vector<int> &v)
 {
     std::sort(v.begin(), v.end());
     v.erase(std::unique(v.begin(), v.end()), v.end());
-}
-
-bool RayPlane(const glm::vec3 &O, const glm::vec3 &D, const glm::vec3 &A, const glm::vec3 &n, glm::vec3 &hit)
-{
-    float denom = glm::dot(n, D);
-    if (std::abs(denom) < 1e-6f)
-        return false;
-
-    float t = glm::dot(n, (A - O)) / denom;
-    if (t <= 0.0f)
-        return false;
-
-    hit = O + t * D;
-    return true;
 }
 
 static bool RayIntersectsSegment3D(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C, const glm::vec3 &D, glm::vec3 &outHit, float eps = 1e-5f)
@@ -1170,7 +1171,8 @@ void CreateCircle(int N, float R, float cx, float cy, float cz)
     }
 }
 
-void PerpToPlane(){
+void PerpToPlane()
+{
     int id = selectedOrder[0];
     int ia = selectedOrder[1];
     int ib = selectedOrder[2];
@@ -1187,7 +1189,8 @@ void PerpToPlane(){
     glm::vec3 n = glm::cross(u, v);
 
     float nn = glm::dot(n, n);
-    if (nn < 1e-8f) return;
+    if (nn < 1e-8f)
+        return;
 
     glm::vec3 w = D - A;
 
