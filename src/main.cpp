@@ -122,6 +122,14 @@ void CreatePyramid();
 void CreateTetraheadron();
 void CreateCircle(int N, float R, float cx, float cy, float cz); // in dev
 
+// Letters
+std::string GetPointLabel(int i);
+static void DrawPointLabels(
+    const std::vector<glm::vec3> &positions,
+    const glm::mat4 &view,
+    const glm::mat4 &proj,
+    int w, int h);
+
 // Future
 int IndexByPos(const glm::vec3 &pos);
 
@@ -130,7 +138,6 @@ float pr = Engine::Buffers::pr;
 float pg = Engine::Buffers::pg;
 float pb = Engine::Buffers::pb;
 float pa = Engine::Buffers::pa;
-
 
 int main()
 {
@@ -191,6 +198,12 @@ int main()
     while (!Engine::Window::isShouldClose(Engine::Window::GetWin()))
     {
         Engine::Events::PollEvents();
+        
+        if (glfwGetWindowAttrib(Engine::Window::window, GLFW_ICONIFIED) != 0)
+        {
+            ImGui_ImplGlfw_Sleep(10);
+            continue;
+        }
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -218,6 +231,7 @@ int main()
         glViewport(0, 0, w, h);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
         if (Engine::Events::clicked(GLFW_MOUSE_BUTTON_LEFT))
         {
             cam.yaw += Engine::Events::deltaX * 0.007f;
@@ -233,7 +247,7 @@ int main()
         if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode)
         {
             if (selectedOrder.size() != 3)
-                continue;
+                std::cout << "Err: ";
             int i0 = selectedOrder[0];
             int i1 = selectedOrder[1];
             int i2 = selectedOrder[2];
@@ -245,7 +259,7 @@ int main()
             glm::vec3 n = glm::cross(B - A, C - A);
             float nn = glm::length(n);
             if (nn < 1e-6f)
-                continue;
+                std::cout << "Err: ";
             n /= nn;
 
             double mx = Engine::Events::x;
@@ -303,7 +317,7 @@ int main()
         {
             if (!ExtendUsingCutLine())
             {
-                continue;
+                std::cout << "Err: ";
             }
         }
 
@@ -638,6 +652,12 @@ int main()
             ImGui::End();
         }
 
+        glm::mat4 view = cam.view();
+        glm::mat4 proj = cam.proj((float)w / (float)h);
+
+        DrawPointLabels(Engine::Buffers::positions, view, proj, w, h);
+
+        end_frame:
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -1207,4 +1227,38 @@ void PerpToPlane()
     Engine::Buffers::AddPoint(H.x, H.y, H.z, 1.0f, 1.0f, 0.0f, 1.0f);
 
     Engine::Buffers::ConnectPointsLine(id, hIndex);
+}
+
+std::string GetPointLabel(int i)
+{
+    static const char *k8[] = {"A", "B", "C", "D", "A1", "B1", "C1", "D1"};
+    if (i >= 0 && i < 8)
+        return k8[i];
+
+    std::string res = (i == 8) ? "P" : "P" + std::to_string(i-8);
+    return res;
+}
+
+void DrawPointLabels(
+    const std::vector<glm::vec3> &positions,
+    const glm::mat4 &view,
+    const glm::mat4 &proj,
+    int w, int h)
+{
+    ImDrawList *dl = ImGui::GetForegroundDrawList();
+    if (!dl)
+        return;
+
+    const ImU32 col = IM_COL32(255, 255, 255, 255);
+    const ImVec2 off(6.0f, -6.0f);
+
+    for (int i = 0; i < (int)positions.size(); ++i)
+    {
+        glm::vec2 p;
+        if (!Engine::WorldToScreen(positions[i], view, proj, w, h, p))
+            continue;
+
+        std::string label = GetPointLabel(i);
+        dl->AddText(ImVec2(p.x + off.x, p.y + off.y), col, label.c_str());
+    }
 }
