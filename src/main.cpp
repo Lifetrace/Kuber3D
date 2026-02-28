@@ -118,6 +118,7 @@ static void SortUnique(std::vector<int> &v);
 
 // Figures
 void CreateCube();
+void CreateCuboid();
 void CreatePyramid();
 void CreateTetraheadron();
 void CreateCircle(int N, float R, float cx, float cy, float cz); // in dev
@@ -203,18 +204,18 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
-    ImFont *font = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
-    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
+    ImFont *font = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
+    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
     // io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
     bool show_demo_window = false;
 
-    Engine::Shader *shaderBase = Engine::load_shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+    Engine::Shader *shaderBase = Engine::load_shader("../../assets/shaders/basic.vert", "../../assets/shaders/basic.frag");
     if (!shaderBase)
         return -1;
 
-    Engine::Shader *shaderLines = Engine::load_shader("assets/shaders/line.vert", "assets/shaders/line.frag", "assets/shaders/line.geom");
+    Engine::Shader *shaderLines = Engine::load_shader("../../assets/shaders/line.vert", "../../assets/shaders/line.frag", "../../assets/shaders/line.geom");
     if (!shaderLines)
         return -1;
 
@@ -380,6 +381,11 @@ int main()
             if (shape == 8)
             {
                 CreateCube();
+            }
+
+            if (shape == 108)
+            {
+                CreateCuboid();
             }
 
             if (shape == 5)
@@ -568,6 +574,14 @@ int main()
                     ImGui::EndTabItem();
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                 }
+                if (ImGui::BeginTabItem("Cuboid"))
+                {
+                    ImGui::PopStyleColor();
+                    ImGui::Text("Ctrl + E for Cuboid creation");
+                    shape = 108;
+                    ImGui::EndTabItem();
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                }
                 if (ImGui::BeginTabItem("Circle"))
                 {
                     ImGui::PopStyleColor();
@@ -671,14 +685,14 @@ int main()
                 ImGuiWindowFlags_NoTitleBar;
 
             ImGui::SetNextWindowPos(ImVec2(Engine::width / 2 - 32, Engine::height / 2 - 64), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(-1, -1), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(50, -1), ImGuiCond_Always);
 
             ImGui::Begin("Split", nullptr, flags);
             static char a[5] = "";
-            ImGui::InputText("a", a, IM_ARRAYSIZE(a));
+            ImGui::InputText("##a", a, IM_ARRAYSIZE(a));
             ImGui::Separator();
             static char b[5] = "";
-            ImGui::InputText("b", b, IM_ARRAYSIZE(b));
+            ImGui::InputText("##b", b, IM_ARRAYSIZE(b));
 
             float a1 = static_cast<float>(std::atof(a));
             float b1 = static_cast<float>(std::atof(b));
@@ -1111,6 +1125,53 @@ bool ExtendUsingCutLine()
     return true;
 }
 
+void CreateCuboid()
+{
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.8f, pr, pg, pb, pa); // 0
+    Engine::Buffers::AddPoint(1.0f, 0.0f, -1.8f, pr, pg, pb, pa);  // 1
+    Engine::Buffers::AddPoint(-1.0f, 0.0f, 1.8f, pr, pg, pb, pa);  // 2
+    Engine::Buffers::AddPoint(1.0f, 0.0f, 1.8f, pr, pg, pb, pa);   // 3
+
+    Engine::Buffers::AddPoint(-1.0f, 2.0f, -1.8f, pr, pg, pb, pa); // 4
+    Engine::Buffers::AddPoint(1.0f, 2.0f, -1.8f, pr, pg, pb, pa);  // 5
+    Engine::Buffers::AddPoint(-1.0f, 2.0f, 1.8f, pr, pg, pb, pa);  // 6
+    Engine::Buffers::AddPoint(1.0f, 2.0f, 1.8f, pr, pg, pb, pa);   // 7
+
+    // 0
+    Engine::Buffers::ConnectPointsLine(0, 1);
+    Engine::Buffers::ConnectPointsLine(0, 2);
+    Engine::Buffers::ConnectPointsLine(0, 4);
+    // 1
+    Engine::Buffers::ConnectPointsLine(1, 5);
+    Engine::Buffers::ConnectPointsLine(1, 3);
+    // 3
+    Engine::Buffers::ConnectPointsLine(3, 2);
+    Engine::Buffers::ConnectPointsLine(3, 7);
+    // 2
+    Engine::Buffers::ConnectPointsLine(2, 6);
+    // 4
+    Engine::Buffers::ConnectPointsLine(4, 5);
+    Engine::Buffers::ConnectPointsLine(4, 6);
+    // 5
+    Engine::Buffers::ConnectPointsLine(5, 7);
+    // 7
+    Engine::Buffers::ConnectPointsLine(7, 6);
+
+    Engine::Buffers::AddQuad(0, 1, 3, 2);
+
+    Engine::Buffers::AddQuad(4, 6, 7, 5);
+
+    Engine::Buffers::AddQuad(2, 3, 7, 6);
+
+    Engine::Buffers::AddQuad(0, 4, 5, 1);
+
+    Engine::Buffers::AddQuad(0, 2, 6, 4);
+
+    Engine::Buffers::AddQuad(1, 5, 7, 3);
+
+    Engine::Buffers::Update();
+}
+
 void CreateCube()
 {
     Engine::Buffers::AddPoint(-1.0f, 0.0f, -1.0f, pr, pg, pb, pa); // 0
@@ -1298,7 +1359,7 @@ void DrawPointLabels(
     if (!dl)
         return;
 
-    const ImU32 col = IM_COL32(255, 255, 255, 255);
+    ImU32 col = (Theme == 0) ? IM_COL32(255,255,255,255) : IM_COL32(0,71,171,255);
     const ImVec2 off(6.0f, -6.0f);
 
     for (int i = 0; i < (int)positions.size(); ++i)
@@ -1323,8 +1384,8 @@ void DrawPointNamePopup()
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar;
 
-    ImGui::SetNextWindowPos(ImVec2(Engine::width / 2 - 160, Engine::height / 2 - 60), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(320, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(Engine::width / 2 - 38, Engine::height / 2 - 60), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(-1, 0), ImGuiCond_Always);
 
     ImGui::Begin("PointName", nullptr, flags);
 
@@ -1333,6 +1394,7 @@ void DrawPointNamePopup()
 
     ImGui::Separator();
 
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     if (ImGui::Button("Create", ImVec2(-1, 0)))
     {
         // 1) Add point
@@ -1381,6 +1443,7 @@ void DrawPointNamePopup()
         gPendingPoint.active = false;
         gPendingPoint.action = PendingPointAction::None;
     }
+    ImGui::PopStyleColor();
 
     ImGui::End();
 }
