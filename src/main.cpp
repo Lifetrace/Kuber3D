@@ -139,6 +139,44 @@ float pg = Engine::Buffers::pg;
 float pb = Engine::Buffers::pb;
 float pa = Engine::Buffers::pa;
 
+// Point names (same order as Engine::Buffers::positions)
+std::vector<std::string> pointNames;
+
+// Pending point creation popup
+enum class PendingPointAction
+{
+    None = 0,
+    JustAdd,    // add point only
+    SplitLine,  // add point + connect to (a,b)
+    ExtendLine, // add point + connect ia->ib and ib->new
+    PerpToPlane // add point + connect id->new
+};
+
+struct PendingPointUI
+{
+    bool active = false;
+    glm::vec3 pos{0, 0, 0};
+
+    PendingPointAction action = PendingPointAction::None;
+
+    // action data
+    int a = -1, b = -1;   // SplitLine: connect a-new and b-new
+    int ia = -1, ib = -1; // ExtendLine: connect ia-ib and ib-new
+    int id = -1;          // PerpToPlane: connect id-new
+
+    char name[32] = "P"; // input buffer
+};
+
+static PendingPointUI gPendingPoint;
+
+void RequestPointCreate(
+    const glm::vec3 &pos,
+    PendingPointAction action,
+    const char *defaultName = "P",
+    int a = -1, int b = -1, int ia = -1, int ib = -1, int id = -1);
+
+void DrawPointNamePopup();
+
 int main()
 {
     if (Engine::Window::Init(Engine::width, Engine::height, "Kuber 3D") != 0)
@@ -198,7 +236,7 @@ int main()
     while (!Engine::Window::isShouldClose(Engine::Window::GetWin()))
     {
         Engine::Events::PollEvents();
-        
+
         if (glfwGetWindowAttrib(Engine::Window::window, GLFW_ICONIFIED) != 0)
         {
             ImGui_ImplGlfw_Sleep(10);
@@ -210,6 +248,10 @@ int main()
         ImGui::NewFrame();
 
         ImGuiIO &io = ImGui::GetIO();
+
+        const bool uiCapturesKeyboard = io.WantTextInput || io.WantCaptureKeyboard;
+
+        const bool blockHotkeys = uiCapturesKeyboard || gPendingPoint.active || Split;
 
         if (Theme == 1)
         {
@@ -231,105 +273,105 @@ int main()
         glViewport(0, 0, w, h);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-        if (Engine::Events::clicked(GLFW_MOUSE_BUTTON_LEFT))
+        if (!blockHotkeys)
         {
-            cam.yaw += Engine::Events::deltaX * 0.007f;
-            cam.pitch -= Engine::Events::deltaY * 0.007f;
-            cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
-        }
-
-        if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && selectedOrder.size() == 4)
-        {
-            PerpToPlane();
-        }
-
-        if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode)
-        {
-            if (selectedOrder.size() != 3)
-                std::cout << "Err: ";
-            int i0 = selectedOrder[0];
-            int i1 = selectedOrder[1];
-            int i2 = selectedOrder[2];
-
-            glm::vec3 A = Engine::Buffers::positions[i0];
-            glm::vec3 B = Engine::Buffers::positions[i1];
-            glm::vec3 C = Engine::Buffers::positions[i2];
-
-            glm::vec3 n = glm::cross(B - A, C - A);
-            float nn = glm::length(n);
-            if (nn < 1e-6f)
-                std::cout << "Err: ";
-            n /= nn;
-
-            double mx = Engine::Events::x;
-            double my = Engine::Events::y;
-
-            glm::mat4 view = cam.view();
-            glm::mat4 proj = cam.proj((float)w / (float)h);
-
-            glm::vec2 ndc = Engine::MouseToNDC(mx, my, w, h);
-            Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, proj, view);
-
-            glm::vec3 hit;
-            if (!Engine::RayPlane(ray.origin, ray.dir, A, n, hit))
-                continue;
-
-            Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, pr, pg, pb, pa);
-            Engine::Buffers::Update();
-        }
-
-        if (Engine::Events::jPressed(GLFW_KEY_V) && IsEditMode && selectedOrder.size() == 1)
-        {
-            int idx = selectedOrder[0];
-            targetH = Engine::Buffers::positions[idx];
-        }
-
-        // DeletePoints
-        if (Engine::Events::jPressed(GLFW_KEY_DELETE) && IsEditMode)
-        {
-            DelAllSelected();
-        }
-
-        // ConnectPoints
-        if (Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && selectedOrder.size() == 2)
-        {
-            if (Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL))
-                Engine::Buffers::DisConnectPointsLine(selectedOrder[0], selectedOrder[1]);
-            else
-                Engine::Buffers::ConnectPointsLine(selectedOrder[0], selectedOrder[1]);
-        }
-
-        // Cutting
-        if (Engine::Events::jPressed(GLFW_KEY_S))
-        {
-            SetSplit();
-            IsEditMode = false;
-        }
-
-        // Tab
-        if (Engine::Events::jPressed(GLFW_KEY_TAB))
-        {
-            SetEditMode();
-        }
-
-        if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode && selectedOrder.size() == 4)
-        {
-            if (!ExtendUsingCutLine())
+            if (Engine::Events::clicked(GLFW_MOUSE_BUTTON_LEFT))
             {
-                std::cout << "Err: ";
+                cam.yaw += Engine::Events::deltaX * 0.007f;
+                cam.pitch -= Engine::Events::deltaY * 0.007f;
+                cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
+            }
+
+            if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && selectedOrder.size() == 4)
+            {
+                PerpToPlane();
+            }
+
+            if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode)
+            {
+                if (selectedOrder.size() != 3)
+                    std::cout << "Err: ";
+                int i0 = selectedOrder[0];
+                int i1 = selectedOrder[1];
+                int i2 = selectedOrder[2];
+
+                glm::vec3 A = Engine::Buffers::positions[i0];
+                glm::vec3 B = Engine::Buffers::positions[i1];
+                glm::vec3 C = Engine::Buffers::positions[i2];
+
+                glm::vec3 n = glm::cross(B - A, C - A);
+                float nn = glm::length(n);
+                if (nn < 1e-6f)
+                    std::cout << "Err: ";
+                n /= nn;
+
+                double mx = Engine::Events::x;
+                double my = Engine::Events::y;
+
+                glm::mat4 view = cam.view();
+                glm::mat4 proj = cam.proj((float)w / (float)h);
+
+                glm::vec2 ndc = Engine::MouseToNDC(mx, my, w, h);
+                Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, proj, view);
+
+                glm::vec3 hit;
+                if (!Engine::RayPlane(ray.origin, ray.dir, A, n, hit))
+                    continue;
+
+                RequestPointCreate(hit, PendingPointAction::JustAdd, "P");
+            }
+
+            if (Engine::Events::jPressed(GLFW_KEY_V) && IsEditMode && selectedOrder.size() == 1)
+            {
+                int idx = selectedOrder[0];
+                targetH = Engine::Buffers::positions[idx];
+            }
+
+            // DeletePoints
+            if (Engine::Events::jPressed(GLFW_KEY_DELETE) && IsEditMode)
+            {
+                DelAllSelected();
+            }
+
+            // ConnectPoints
+            if (Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && selectedOrder.size() == 2)
+            {
+                if (Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL))
+                    Engine::Buffers::DisConnectPointsLine(selectedOrder[0], selectedOrder[1]);
+                else
+                    Engine::Buffers::ConnectPointsLine(selectedOrder[0], selectedOrder[1]);
+            }
+
+            // Cutting
+            if (Engine::Events::jPressed(GLFW_KEY_S))
+            {
+                SetSplit();
+                IsEditMode = false;
+            }
+
+            // Tab
+            if (Engine::Events::jPressed(GLFW_KEY_TAB))
+            {
+                SetEditMode();
+            }
+
+            if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode && selectedOrder.size() == 4)
+            {
+                if (!ExtendUsingCutLine())
+                {
+                    std::cout << "Err: ";
+                }
             }
         }
+        // if (Engine::Events::jPressed(GLFW_KEY_A) && IsEditMode && selectedOrder.size() == 3)
+        // {
+        //     Engine::Angle ang(selectedOrder[0], selectedOrder[1], selectedOrder[2]);
+        //     ang.active = true;
 
-        if (Engine::Events::jPressed(GLFW_KEY_A) && IsEditMode && selectedOrder.size() == 3)
-        {
-            Engine::Angle ang(selectedOrder[0], selectedOrder[1], selectedOrder[2]);
-            ang.active = true;
+        //     Engine::AngleUtils::RebuildAngleArc(ang, Engine::Buffers::positions, 40);
 
-            Engine::AngleUtils::RebuildAngleArc(ang, Engine::Buffers::positions, 40);
-
-            angles.push_back(ang);
-        }
+        //     angles.push_back(ang);
+        // }
 
         if (Engine::Events::jPressed(GLFW_KEY_E) && IsEditMode &&
             Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL) &&
@@ -656,8 +698,9 @@ int main()
         glm::mat4 proj = cam.proj((float)w / (float)h);
 
         DrawPointLabels(Engine::Buffers::positions, view, proj, w, h);
+        DrawPointNamePopup();
 
-        end_frame:
+    end_frame:
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -816,7 +859,21 @@ void DelAllSelected()
         newLines.push_back((GLuint)mapOldToNew[a]);
         newLines.push_back((GLuint)mapOldToNew[b]);
     }
+    std::vector<std::string> newNames;
+    newNames.reserve(newN);
 
+    for (int i = 0; i < n; i++)
+    {
+        if (!removed[i])
+        {
+            if (i < (int)pointNames.size())
+                newNames.push_back(pointNames[i]);
+            else
+                newNames.push_back("");
+        }
+    }
+
+    pointNames = std::move(newNames);
     Engine::Buffers::lineIndices = std::move(newLines);
 
     if ((int)Engine::Buffers::connectedPoints.size() == n)
@@ -907,11 +964,7 @@ void CutLine(float p, float q)
 
     const glm::vec3 R = A + (B - A) * (p / (p + q));
 
-    Engine::Buffers::AddPoint(R.x, R.y, R.z, pr, pg, pb, pa);
-
-    const int newIndex = static_cast<int>(Engine::Buffers::positions.size()) - 1;
-    Engine::Buffers::ConnectPointsLine(a, newIndex);
-    Engine::Buffers::ConnectPointsLine(b, newIndex);
+    RequestPointCreate(R, PendingPointAction::SplitLine, "M", a, b);
 }
 
 int IndexByPos(const glm::vec3 &pos)
@@ -1222,11 +1275,7 @@ void PerpToPlane()
 
     float dist = glm::length(perp);
 
-    int hIndex = (int)Engine::Buffers::positions.size();
-
-    Engine::Buffers::AddPoint(H.x, H.y, H.z, 1.0f, 1.0f, 0.0f, 1.0f);
-
-    Engine::Buffers::ConnectPointsLine(id, hIndex);
+    RequestPointCreate(H, PendingPointAction::PerpToPlane, "H", -1, -1, -1, -1, id);
 }
 
 std::string GetPointLabel(int i)
@@ -1235,7 +1284,7 @@ std::string GetPointLabel(int i)
     if (i >= 0 && i < 8)
         return k8[i];
 
-    std::string res = (i == 8) ? "P" : "P" + std::to_string(i-8);
+    std::string res = (i == 8) ? "P" : "P" + std::to_string(i - 8);
     return res;
 }
 
@@ -1258,7 +1307,98 @@ void DrawPointLabels(
         if (!Engine::WorldToScreen(positions[i], view, proj, w, h, p))
             continue;
 
-        std::string label = GetPointLabel(i);
+        std::string label;
+        if (i >= 0 && i < (int)pointNames.size() && !pointNames[i].empty())
+            label = pointNames[i];
+        else
+            label = GetPointLabel(i);
         dl->AddText(ImVec2(p.x + off.x, p.y + off.y), col, label.c_str());
     }
+}
+
+void DrawPointNamePopup()
+{
+    if (!gPendingPoint.active)
+        return;
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar;
+
+    ImGui::SetNextWindowPos(ImVec2(Engine::width / 2 - 160, Engine::height / 2 - 60), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(320, 0), ImGuiCond_Always);
+
+    ImGui::Begin("PointName", nullptr, flags);
+
+    ImGui::Text("Point name:");
+    ImGui::InputText("##PointName", gPendingPoint.name, IM_ARRAYSIZE(gPendingPoint.name));
+
+    ImGui::Separator();
+
+    if (ImGui::Button("Create", ImVec2(-1, 0)))
+    {
+        // 1) Add point
+        Engine::Buffers::AddPoint(gPendingPoint.pos.x, gPendingPoint.pos.y, gPendingPoint.pos.z, pr, pg, pb, pa);
+
+        int newIndex = (int)Engine::Buffers::positions.size() - 1;
+
+        // 2) store name (keep vector aligned with positions)
+        pointNames.resize(Engine::Buffers::positions.size());
+        pointNames[newIndex] = std::string(gPendingPoint.name);
+
+        // 3) post actions
+        if (gPendingPoint.action == PendingPointAction::SplitLine)
+        {
+            if (gPendingPoint.a >= 0 && gPendingPoint.b >= 0)
+            {
+                Engine::Buffers::ConnectPointsLine(gPendingPoint.a, newIndex);
+                Engine::Buffers::ConnectPointsLine(gPendingPoint.b, newIndex);
+            }
+        }
+        else if (gPendingPoint.action == PendingPointAction::ExtendLine)
+        {
+            if (gPendingPoint.ia >= 0 && gPendingPoint.ib >= 0)
+            {
+                Engine::Buffers::ConnectPointsLine(gPendingPoint.ia, gPendingPoint.ib);
+                Engine::Buffers::ConnectPointsLine(gPendingPoint.ib, newIndex);
+            }
+        }
+        else if (gPendingPoint.action == PendingPointAction::PerpToPlane)
+        {
+            if (gPendingPoint.id >= 0)
+            {
+                Engine::Buffers::ConnectPointsLine(gPendingPoint.id, newIndex);
+            }
+        }
+
+        Engine::Buffers::Update();
+
+        // close
+        gPendingPoint.active = false;
+        gPendingPoint.action = PendingPointAction::None;
+    }
+
+    if (ImGui::Button("Cancel", ImVec2(-1, 0)))
+    {
+        gPendingPoint.active = false;
+        gPendingPoint.action = PendingPointAction::None;
+    }
+
+    ImGui::End();
+}
+
+void RequestPointCreate(
+    const glm::vec3 &pos,
+    PendingPointAction action,
+    const char *defaultName,
+    int a, int b, int ia, int ib, int id)
+{
+    gPendingPoint.active = true;
+    gPendingPoint.pos = pos;
+    gPendingPoint.action = action;
+    gPendingPoint.a = a;
+    gPendingPoint.b = b;
+    gPendingPoint.ia = ia;
+    gPendingPoint.ib = ib;
+    gPendingPoint.id = id;
+
+    std::snprintf(gPendingPoint.name, sizeof(gPendingPoint.name), "%s", defaultName);
 }
