@@ -15,5 +15,7 @@ namespace Engine{
         static bool isShouldClose(GLFWwindow* window);
         static void SetClose(GLFWwindow* window, bool state);
         static GLFWwindow* GetWin();
+        static void ToggleFullscreen();
+        static bool IsFullscreen();
     };
 }

@@ -178,6 +178,56 @@ void RequestPointCreate(
 
 void DrawPointNamePopup();
 
+// Line labels by key [ min(a,b), max(a,b) ] -> 1, 2, ...
+static std::unordered_map<uint64_t, std::string> lineNamesByKey;
+
+static uint64_t LineKey(int a, int b)
+{
+    int lo = std::min(a, b);
+    int hi = std::max(a, b);
+    return ((uint64_t)(uint32_t)lo << 32) | (uint64_t)(uint32_t)hi;
+}
+struct PendingLineUI
+{
+    bool active = false;
+    int a = -1, b = -1;
+    char name[16] = "1";
+};
+
+static PendingLineUI gPendingLine;
+
+void DrawLineLabels(
+    const glm::mat4 &view,
+    const glm::mat4 &proj,
+    int w, int h);
+void RequestLineLabel(int a, int b, const char *defaultName);
+void DrawLineNamePopup();
+
+bool HasLineBetween(int a, int b);
+enum class RenameMode
+{
+    None,
+    Point,
+    Line
+};
+
+// Rename Labels
+struct PendingRenameUI
+{
+    bool active = false;
+    RenameMode mode = RenameMode::None;
+
+    int pointIndex = -1;
+    int a = -1, b = -1;
+
+    char name[32] = "";
+};
+
+static PendingRenameUI gRename;
+void RequestRenamePoint(int idx, const std::string &current);
+void RequestRenameLine(int a, int b, const std::string &current);
+void DrawRenamePopup();
+
 int main()
 {
     if (Engine::Window::Init(Engine::width, Engine::height, "Kuber 3D") != 0)
@@ -237,6 +287,11 @@ int main()
     while (!Engine::Window::isShouldClose(Engine::Window::GetWin()))
     {
         Engine::Events::PollEvents();
+
+        if (Engine::Events::jPressed(GLFW_KEY_F11))
+        {
+            Engine::Window::ToggleFullscreen();
+        }
 
         if (glfwGetWindowAttrib(Engine::Window::window, GLFW_ICONIFIED) != 0)
         {
@@ -337,12 +392,58 @@ int main()
             // ConnectPoints
             if (Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && selectedOrder.size() == 2)
             {
-                if (Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL))
-                    Engine::Buffers::DisConnectPointsLine(selectedOrder[0], selectedOrder[1]);
-                else
-                    Engine::Buffers::ConnectPointsLine(selectedOrder[0], selectedOrder[1]);
-            }
+                int a = selectedOrder[0];
+                int b = selectedOrder[1];
 
+                if (Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL))
+                {
+                    Engine::Buffers::DisConnectPointsLine(a, b);
+                    lineNamesByKey.erase(LineKey(a, b));
+                    Engine::Buffers::Update();
+                }
+                else
+                {
+                    Engine::Buffers::ConnectPointsLine(a, b);
+                    Engine::Buffers::Update();
+
+                    int linesCount = (int)Engine::Buffers::lineIndices.size() / 2;
+                    std::string def = std::to_string(linesCount);
+                    RequestLineLabel(a, b, def.c_str());
+                }
+            }
+            if (Engine::Events::jPressed(GLFW_KEY_N) && IsEditMode)
+            {
+                if (selectedOrder.size() == 1)
+                {
+                    int p = selectedOrder[0];
+
+                    pointNames.resize(Engine::Buffers::positions.size());
+
+                    std::string cur = (p >= 0 && p < (int)pointNames.size()) ? pointNames[p] : "";
+                    if (cur.empty())
+                        cur = GetPointLabel(p);
+
+                    RequestRenamePoint(p, cur);
+                }
+                // rename line
+                else if (selectedOrder.size() == 2)
+                {
+                    int a = selectedOrder[0];
+                    int b = selectedOrder[1];
+
+                    if (HasLineBetween(a, b))
+                    {
+                        uint64_t key = LineKey(a, b);
+
+                        std::string cur = "";
+                        auto it = lineNamesByKey.find(key);
+                        if (it != lineNamesByKey.end())
+                            cur = it->second;
+
+                        RequestRenameLine(a, b, cur);
+                    }
+                }
+            }
             // Cutting
             if (Engine::Events::jPressed(GLFW_KEY_S))
             {
@@ -363,17 +464,17 @@ int main()
                     std::cout << "Err: ";
                 }
             }
+
+            // if (Engine::Events::jPressed(GLFW_KEY_A) && IsEditMode && selectedOrder.size() == 3)
+            // {
+            //     Engine::Angle ang(selectedOrder[0], selectedOrder[1], selectedOrder[2]);
+            //     ang.active = true;
+
+            //     Engine::AngleUtils::RebuildAngleArc(ang, Engine::Buffers::positions, 40);
+
+            //     angles.push_back(ang);
+            // }
         }
-        // if (Engine::Events::jPressed(GLFW_KEY_A) && IsEditMode && selectedOrder.size() == 3)
-        // {
-        //     Engine::Angle ang(selectedOrder[0], selectedOrder[1], selectedOrder[2]);
-        //     ang.active = true;
-
-        //     Engine::AngleUtils::RebuildAngleArc(ang, Engine::Buffers::positions, 40);
-
-        //     angles.push_back(ang);
-        // }
-
         if (Engine::Events::jPressed(GLFW_KEY_E) && IsEditMode &&
             Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL) &&
             Engine::Buffers::positions.size() == 0)
@@ -535,6 +636,14 @@ int main()
             ImGui::PopFont();
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+            if (ImGui::Button(Engine::Window::IsFullscreen() ? "Exit Fullscreen" : "Fullscreen", ImVec2(-1, 0)))
+            {
+                Engine::Window::ToggleFullscreen();
+            }
+
+            ImGui::SetItemTooltip("F11");
+
             if (ImGui::Button("Clean", ImVec2(-1, 0)))
             {
                 if (IsEditMode)
@@ -629,6 +738,8 @@ int main()
             ImGui::SetItemTooltip("Select 1 point that doesn`t lie in plane => Select 3 points that define a plane");
             ImGui::Separator();
 
+            
+
             /*if (ImGui::Button("Filling", ImVec2(-1, 0)))
             {
                 counter++;
@@ -713,8 +824,10 @@ int main()
 
         DrawPointLabels(Engine::Buffers::positions, view, proj, w, h);
         DrawPointNamePopup();
-
-    end_frame:
+        DrawLineNamePopup();
+        DrawRenamePopup();
+        DrawLineLabels(view, proj, w, h);
+        
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -1355,11 +1468,11 @@ void DrawPointLabels(
     const glm::mat4 &proj,
     int w, int h)
 {
-    ImDrawList *dl = ImGui::GetForegroundDrawList();
+    ImDrawList *dl = ImGui::GetBackgroundDrawList();
     if (!dl)
         return;
 
-    ImU32 col = (Theme == 0) ? IM_COL32(255,255,255,255) : IM_COL32(0,71,171,255);
+    ImU32 col = (Theme == 0) ? IM_COL32(255, 255, 255, 255) : IM_COL32(0, 71, 171, 255);
     const ImVec2 off(6.0f, -6.0f);
 
     for (int i = 0; i < (int)positions.size(); ++i)
@@ -1464,4 +1577,185 @@ void RequestPointCreate(
     gPendingPoint.id = id;
 
     std::snprintf(gPendingPoint.name, sizeof(gPendingPoint.name), "%s", defaultName);
+}
+
+void DrawLineLabels(
+    const glm::mat4 &view,
+    const glm::mat4 &proj,
+    int w, int h)
+{
+    ImDrawList *dl = ImGui::GetBackgroundDrawList();
+    if (!dl)
+        return;
+
+    ImU32 col = (Theme == 0) ? IM_COL32(255, 255, 255, 255) : IM_COL32(0, 71, 171, 255);
+    const ImVec2 off(6.0f, 6.0f);
+
+    // пары индексов: [a0,b0,a1,b1,...]
+    auto &L = Engine::Buffers::lineIndices;
+
+    for (int seg = 0; seg + 1 < (int)L.size(); seg += 2)
+    {
+        int a = (int)L[seg];
+        int b = (int)L[seg + 1];
+        if (a < 0 || b < 0 || a >= (int)Engine::Buffers::positions.size() || b >= (int)Engine::Buffers::positions.size())
+            continue;
+
+        glm::vec3 mid = (Engine::Buffers::positions[a] + Engine::Buffers::positions[b]) * 0.5f;
+
+        glm::vec2 p;
+        if (!Engine::WorldToScreen(mid, view, proj, w, h, p))
+            continue;
+
+        uint64_t key = LineKey(a, b);
+        auto it = lineNamesByKey.find(key);
+
+        if (it == lineNamesByKey.end() || it->second.empty())
+            continue;
+
+        dl->AddText(ImVec2(p.x + off.x, p.y + off.y), col, it->second.c_str());
+    }
+}
+
+void RequestLineLabel(int a, int b, const char *defaultName)
+{
+    gPendingLine.active = true;
+    gPendingLine.a = a;
+    gPendingLine.b = b;
+    std::snprintf(gPendingLine.name, sizeof(gPendingLine.name), "%s", defaultName);
+}
+
+void DrawLineNamePopup()
+{
+    if (!gPendingLine.active)
+        return;
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar;
+    ImGui::SetNextWindowPos(ImVec2(Engine::width / 2 - 38, Engine::height / 2 - 60), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(-1, 0), ImGuiCond_Always);
+
+    ImGui::Begin("LineName", nullptr, flags);
+
+    ImGui::Text("Line number:");
+    ImGui::InputText("##LineName", gPendingLine.name, IM_ARRAYSIZE(gPendingLine.name));
+
+    ImGui::Separator();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
+    if (ImGui::Button("Set", ImVec2(-1, 0)))
+    {
+        uint64_t key = LineKey(gPendingLine.a, gPendingLine.b);
+        lineNamesByKey[key] = std::string(gPendingLine.name);
+
+        gPendingLine.active = false;
+        gPendingLine.a = gPendingLine.b = -1;
+    }
+    if (ImGui::Button("Cancel", ImVec2(-1, 0)))
+    {
+        gPendingLine.active = false;
+        gPendingLine.a = gPendingLine.b = -1;
+    }
+    ImGui::PopStyleColor();
+
+    ImGui::End();
+}
+
+bool HasLineBetween(int a, int b)
+{
+    auto &L = Engine::Buffers::lineIndices;
+    for (int i = 0; i + 1 < (int)L.size(); i += 2)
+    {
+        int x = (int)L[i];
+        int y = (int)L[i + 1];
+        if ((x == a && y == b) || (x == b && y == a))
+            return true;
+    }
+    return false;
+}
+
+void DrawRenamePopup()
+{
+    if (!gRename.active)
+        return;
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar;
+
+    ImGui::SetNextWindowPos(ImVec2(Engine::width / 2 - 60, Engine::height / 2 - 60), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(-1, 0), ImGuiCond_Always);
+
+    ImGui::Begin("Rename", nullptr, flags);
+
+    if (gRename.mode == RenameMode::Point)
+        ImGui::Text("Rename point:");
+    else if (gRename.mode == RenameMode::Line)
+        ImGui::Text("Rename line:");
+    else
+        ImGui::Text("Rename:");
+
+    ImGui::InputText("##rename", gRename.name, IM_ARRAYSIZE(gRename.name));
+
+    ImGui::Separator();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
+
+    if (ImGui::Button("Set", ImVec2(-1, 0)))
+    {
+        std::string s = gRename.name;
+
+        if (gRename.mode == RenameMode::Point)
+        {
+            if (gRename.pointIndex >= 0)
+            {
+                pointNames.resize(Engine::Buffers::positions.size());
+                pointNames[gRename.pointIndex] = s;
+            }
+        }
+        else if (gRename.mode == RenameMode::Line)
+        {
+            uint64_t key = LineKey(gRename.a, gRename.b);
+
+            if (s.empty())
+                lineNamesByKey.erase(key);
+            else
+                lineNamesByKey[key] = s;
+        }
+
+        gRename.active = false;
+        gRename.mode = RenameMode::None;
+        gRename.pointIndex = -1;
+        gRename.a = gRename.b = -1;
+        gRename.name[0] = '\0';
+    }
+
+    if (ImGui::Button("Cancel", ImVec2(-1, 0)))
+    {
+        gRename.active = false;
+        gRename.mode = RenameMode::None;
+        gRename.pointIndex = -1;
+        gRename.a = gRename.b = -1;
+        gRename.name[0] = '\0';
+    }
+
+    ImGui::PopStyleColor();
+
+    ImGui::End();
+}
+
+void RequestRenamePoint(int idx, const std::string &current)
+{
+    gRename.active = true;
+    gRename.mode = RenameMode::Point;
+    gRename.pointIndex = idx;
+    gRename.a = gRename.b = -1;
+    std::snprintf(gRename.name, sizeof(gRename.name), "%s", current.c_str());
+}
+
+void RequestRenameLine(int a, int b, const std::string &current)
+{
+    gRename.active = true;
+    gRename.mode = RenameMode::Line;
+    gRename.pointIndex = -1;
+    gRename.a = a;
+    gRename.b = b;
+    std::snprintf(gRename.name, sizeof(gRename.name), "%s", current.c_str());
 }

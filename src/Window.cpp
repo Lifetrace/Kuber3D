@@ -3,6 +3,13 @@
 #include <iostream>
 
 GLFWwindow* Engine::Window::window = nullptr;
+
+static bool g_isFullscreen = false;
+static int g_windowedX = 100;
+static int g_windowedY = 100;
+static int g_windowedW = 1280;
+static int g_windowedH = 720;
+
 namespace Engine {
     int width  = 1280;
     int height = 720;
@@ -79,4 +86,57 @@ void Engine::Window::SetClose(GLFWwindow* window, bool state){
 
 GLFWwindow* Engine::Window::GetWin(){
     return window;
+}
+
+void Engine::Window::ToggleFullscreen()
+{
+    if (!window) return;
+
+    g_isFullscreen = !g_isFullscreen;
+
+    if (g_isFullscreen)
+    {
+        glfwGetWindowPos(window, &g_windowedX, &g_windowedY);
+        glfwGetWindowSize(window, &g_windowedW, &g_windowedH);
+
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        if (!monitor) return;
+
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        if (!mode) return;
+
+        glfwSetWindowMonitor(
+            window,
+            monitor,
+            0, 0,
+            mode->width,
+            mode->height,
+            mode->refreshRate
+        );
+
+        Engine::width = mode->width;
+        Engine::height = mode->height;
+        glViewport(0, 0, Engine::width, Engine::height);
+    }
+    else
+    {
+        glfwSetWindowMonitor(
+            window,
+            nullptr,
+            g_windowedX,
+            g_windowedY,
+            g_windowedW,
+            g_windowedH,
+            0
+        );
+
+        Engine::width = g_windowedW;
+        Engine::height = g_windowedH;
+        glViewport(0, 0, Engine::width, Engine::height);
+    }
+}
+
+bool Engine::Window::IsFullscreen()
+{
+    return g_isFullscreen;
 }
