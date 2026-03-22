@@ -642,8 +642,10 @@ int main()
                 Engine::Window::ToggleFullscreen();
             }
 
+            ImGui::PopStyleColor();
             ImGui::SetItemTooltip("F11");
 
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             if (ImGui::Button("Clean", ImVec2(-1, 0)))
             {
                 if (IsEditMode)
@@ -651,6 +653,7 @@ int main()
                     Engine::Buffers::DeleteAll();
                 }
             }
+
             ImGui::PopStyleColor();
             ImGui::SetItemTooltip("Tap to delete all points (need to be in edit mode)");
 
@@ -722,7 +725,7 @@ int main()
             ImGui::SetItemTooltip("Select 3 points");
             ImGui::Separator();
 
-            ImGui::Text("J to create line");
+            ImGui::Text("J to create line or to name line");
             ImGui::SetItemTooltip("Select 2 points");
             ImGui::Separator();
 
@@ -1417,7 +1420,7 @@ void CreateCircle(int N, float R, float cx, float cy, float cz)
         }
     }
 }
-
+// INCORRECT 
 void PerpToPlane()
 {
     int id = selectedOrder[0];
@@ -1636,7 +1639,7 @@ void DrawLineNamePopup()
 
     ImGui::Begin("LineName", nullptr, flags);
 
-    ImGui::Text("Line number:");
+    ImGui::Text("Name Line?");
     ImGui::InputText("##LineName", gPendingLine.name, IM_ARRAYSIZE(gPendingLine.name));
 
     ImGui::Separator();
