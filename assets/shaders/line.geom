@@ -22,12 +22,12 @@ void main(){
     gA = clipToScreen(vClip[0]);
     gB = clipToScreen(vClip[1]);
 
-    gColor = ourColor[0];
-
     gl_Position = gl_in[0].gl_Position;
+    gColor = ourColor[0];
     EmitVertex();
 
     gl_Position = gl_in[1].gl_Position;
+    gColor = ourColor[1];
     EmitVertex();
 
     EndPrimitive();
