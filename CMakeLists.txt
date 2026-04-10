@@ -22,7 +22,9 @@ src/imgui_tables.cpp
 src/imgui_impl_glfw.cpp
 src/imgui_impl_opengl3.cpp
 src/imgui_demo.cpp
-src/Angle.cpp)
+src/Angle.cpp
+src/Movement.cpp
+)
 
 if (MINGW)
   target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
