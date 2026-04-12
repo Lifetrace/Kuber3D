@@ -7,13 +7,13 @@ namespace Engine
 {
     class Movement
     {
-        static bool IsEnable;
+        static inline bool IsEnable;
 
-        static std::vector<int> PointsAbleToMove;
+        static inline std::vector<int> PointsAbleToMove;
 
-        static glm::vec3 Axe;
+        static inline glm::vec3 Axe;
 
-        static glm::vec3 ToCamp[2];
+        static inline glm::vec3 ToCamp[2];
 
     public:
         void SetAxe(glm::vec3 Axe)
@@ -21,7 +21,7 @@ namespace Engine
             this->Axe = glm::normalize(Axe);
         }
 
-        glm::vec3 GetAxe(glm::vec3 Axe)
+        glm::vec3 GetAxe()
         {
             return this->Axe;
         }

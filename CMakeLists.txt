@@ -24,6 +24,11 @@ src/imgui_impl_opengl3.cpp
 src/imgui_demo.cpp
 src/Angle.cpp
 src/Movement.cpp
+src/Selecting.cpp
+src/VectorMath.cpp
+src/PointActions.cpp
+src/Operations.cpp
+src/Figures.cpp
 )
 
 if (MINGW)
