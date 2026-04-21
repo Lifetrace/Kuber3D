@@ -9,7 +9,7 @@ void Engine::Style::ApplyKuberLightTheme()
     // General
     style.FontSizeBase = 20.00f;
     style.Colors[ImGuiCol_Text] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
-
+    
     // Colors
     style.Colors[ImGuiCol_WindowBg] = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
     style.Colors[ImGuiCol_Tab] = ImVec4(0.0f, 0.2f, 0.6f, 1.00f);
