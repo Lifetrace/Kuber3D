@@ -633,7 +633,6 @@ int main()
                 }
             }
 
-            ImGui::PopStyleColor();
             ImGui::SetItemTooltip("Tap to delete all points (need to be in edit mode)");
 
             if (ImGui::Button("Save", ImVec2(-1, 0)))
@@ -655,6 +654,8 @@ int main()
                     Engine::Saves::LoadDocumentFromFile(path);
                 }
             }
+
+            ImGui::SetItemTooltip("Click to Open the scene (in *.kub format)");
 
             if (ImGui::Button("New User Scene", ImVec2(-1, 0)))
             {
@@ -698,7 +699,7 @@ int main()
                     }
                 }
             }
-            ImGui::SetItemTooltip("Click to Open the scene (in *.kub format)");
+            ImGui::PopStyleColor();
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -810,6 +811,7 @@ int main()
             // ImGui::Separator();
 
             ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
             if (ImGui::Button("Change theme", ImVec2(-1, 0)))
@@ -827,9 +829,21 @@ int main()
                 }
             }
 
+            
             if (ImGui::Button("Exit", ImVec2(-1, 0)))
             {
                 Engine::Window::SetClose(Engine::Window::GetWin(), true);
+            }
+            
+            ImGui::PopStyleColor();
+
+            if (Engine::Style::Theme == 0)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            }
+            else
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
             }
 
             if (Engine::Saves::IsLessonMode() && !Engine::Saves::gCurrentDocument.steps.empty())
