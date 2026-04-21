@@ -27,6 +27,40 @@ void Engine::Operations::CutLine(float p, float q)
 
     Engine::PointActions::RequestPointCreate(R, Engine::PointActions::PendingPointAction::SplitLine, "M", a, b);
 }
+bool LineIntersectsLine3D(
+    const glm::vec3& A,
+    const glm::vec3& B,
+    const glm::vec3& C,
+    const glm::vec3& D,
+    glm::vec3& hit,
+    float eps)
+{
+    glm::vec3 u = B - A;
+    glm::vec3 v = D - C;
+    glm::vec3 w = A - C;
+
+    float a = glm::dot(u, u);
+    float b = glm::dot(u, v);
+    float c = glm::dot(v, v);
+    float d = glm::dot(u, w);
+    float e = glm::dot(v, w);
+
+    float denom = a * c - b * b;
+    if (std::fabs(denom) < eps)
+        return false;
+
+    float s = (b * e - c * d) / denom;
+    float t = (a * e - b * d) / denom;
+
+    glm::vec3 p1 = A + s * u;
+    glm::vec3 p2 = C + t * v;
+
+    if (glm::length(p1 - p2) > eps)
+        return false;
+
+    hit = (p1 + p2) * 0.5f;
+    return true;
+}
 
 bool Engine::Operations::ExtendUsingCutLine()
 {
@@ -48,7 +82,7 @@ bool Engine::Operations::ExtendUsingCutLine()
 
     glm::vec3 hit;
 
-    if (!Engine::VectorMath::RayIntersectsSegment3D(A, B, C, D, hit, 1e-5f))
+    if (!LineIntersectsLine3D(A, B, C, D, hit, 1e-5f))
         return false;
 
     Engine::Buffers::AddPoint(hit.x, hit.y, hit.z, Engine::Buffers::pr,
