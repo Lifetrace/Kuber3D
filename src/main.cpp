@@ -226,6 +226,9 @@ int main()
 
         const bool movementActive = Engine::Movement::IsActive();
 
+        const bool readOnly = Engine::Saves::IsReadOnly();
+        const bool editAllowed = IsEditMode && !readOnly;
+
         if (!blockHotkeys)
         {
 
@@ -280,7 +283,7 @@ int main()
                     cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
                 }
 
-                if (Engine::Events::jPressed(GLFW_KEY_M) && IsEditMode)
+                if (Engine::Events::jPressed(GLFW_KEY_M) && editAllowed)
                 {
                     auto order = Engine::Selecting::selectedOrder;
 
@@ -298,12 +301,12 @@ int main()
                     }
                 }
 
-                if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && Engine::Selecting::selectedOrder.size() == 4)
+                if (Engine::Events::jPressed(GLFW_KEY_R) && editAllowed && Engine::Selecting::selectedOrder.size() == 4)
                 {
                     Engine::Operations::PerpToPlane();
                 }
 
-                if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode)
+                if (Engine::Events::jPressed(GLFW_KEY_P) && editAllowed)
                 {
                     if (Engine::Selecting::selectedOrder.size() != 3)
                     {
@@ -347,20 +350,20 @@ int main()
                     }
                 }
 
-                if (Engine::Events::jPressed(GLFW_KEY_V) && IsEditMode && Engine::Selecting::selectedOrder.size() == 1)
+                if (Engine::Events::jPressed(GLFW_KEY_V) && editAllowed && Engine::Selecting::selectedOrder.size() == 1)
                 {
                     int idx = Engine::Selecting::selectedOrder[0];
                     targetH = Engine::Buffers::positions[idx];
                 }
 
                 // DeletePoints
-                if (Engine::Events::jPressed(GLFW_KEY_DELETE) && IsEditMode)
+                if (Engine::Events::jPressed(GLFW_KEY_DELETE) && editAllowed)
                 {
                     Engine::Selecting::DelAllSelected();
                 }
 
                 // ConnectPoints
-                if (Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && Engine::Selecting::selectedOrder.size() == 2)
+                if (Engine::Events::jPressed(GLFW_KEY_J) && editAllowed && Engine::Selecting::selectedOrder.size() == 2)
                 {
                     int a = Engine::Selecting::selectedOrder[0];
                     int b = Engine::Selecting::selectedOrder[1];
@@ -381,7 +384,7 @@ int main()
                         Engine::PointActions::RequestLineLabel(a, b, def.c_str());
                     }
                 }
-                if (Engine::Events::jPressed(GLFW_KEY_N) && IsEditMode)
+                if (Engine::Events::jPressed(GLFW_KEY_N) && editAllowed)
                 {
                     if (Engine::Selecting::selectedOrder.size() == 1)
                     {
@@ -427,7 +430,7 @@ int main()
                     SetEditMode();
                 }
 
-                if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode && Engine::Selecting::selectedOrder.size() == 4)
+                if (Engine::Events::jPressed(GLFW_KEY_G) && editAllowed && Engine::Selecting::selectedOrder.size() == 4)
                 {
                     if (!Engine::Operations::ExtendUsingCutLine())
                     {
@@ -445,7 +448,7 @@ int main()
             //     angles.push_back(ang);
             // }
         }
-        if (Engine::Events::jPressed(GLFW_KEY_E) && IsEditMode &&
+        if (Engine::Events::jPressed(GLFW_KEY_E) && editAllowed &&
             Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL) &&
             Engine::Buffers::positions.size() == 0)
         {
@@ -476,7 +479,7 @@ int main()
         }
 
         // Navigation
-        if (!uiCapturesMouse && Engine::Events::jclicked(GLFW_MOUSE_BUTTON_LEFT) && IsEditMode)
+        if (!uiCapturesMouse && Engine::Events::jclicked(GLFW_MOUSE_BUTTON_LEFT) && editAllowed)
         {
             if (!Engine::Events::Pressed(GLFW_KEY_LEFT_SHIFT))
                 Engine::Selecting::DesAllSelected();
@@ -620,7 +623,7 @@ int main()
 
             if (ImGui::Button("Clean", ImVec2(-1, 0)))
             {
-                if (IsEditMode)
+                if (editAllowed)
                 {
                     Engine::Selecting::ResetSelection();
                     Engine::PointActions::ResetSceneNames();
@@ -638,18 +641,61 @@ int main()
                 std::string path = Engine::Saves::ShowSaveDialog();
                 if (!path.empty())
                 {
-                    Engine::Saves::SaveSceneToFile(path);
+                    Engine::Saves::SaveDocumentToFile(path);
                 }
             }
 
             ImGui::SetItemTooltip("Click to Save this scene as the file (in *.kub format)");
-            
+
             if (ImGui::Button("Open", ImVec2(-1, 0)))
             {
                 std::string path = Engine::Saves::ShowOpenDialog();
                 if (!path.empty())
                 {
-                    Engine::Saves::LoadSceneFromFile(path);
+                    Engine::Saves::LoadDocumentFromFile(path);
+                }
+            }
+
+            if (ImGui::Button("New User Scene", ImVec2(-1, 0)))
+            {
+                Engine::Saves::NewUserScene();
+            }
+
+            if (ImGui::Button("New Lesson Scene", ImVec2(-1, 0)))
+            {
+                Engine::Saves::NewLessonScene();
+            }
+
+            if (Engine::Saves::IsLessonMode())
+            {
+                if (ImGui::Button("Add Lesson Step", ImVec2(-1, 0)))
+                {
+                    Engine::Saves::AddLessonStepFromCurrent();
+                }
+
+                if (ImGui::Button("Replace Current Step", ImVec2(-1, 0)))
+                {
+                    Engine::Saves::ReplaceCurrentLessonStepFromCurrent();
+                }
+
+                if (ImGui::Button("Delete Current Step", ImVec2(-1, 0)))
+                {
+                    Engine::Saves::DeleteCurrentLessonStep();
+                }
+
+                if (Engine::Saves::IsReadOnly())
+                {
+                    if (ImGui::Button("Switch to Edit Lesson", ImVec2(-1, 0)))
+                    {
+                        Engine::Saves::SetReadOnly(false);
+                    }
+                }
+                else
+                {
+                    if (ImGui::Button("Switch to View Lesson", ImVec2(-1, 0)))
+                    {
+                        Engine::Saves::SetReadOnly(true);
+                    }
                 }
             }
             ImGui::SetItemTooltip("Click to Open the scene (in *.kub format)");
@@ -784,6 +830,48 @@ int main()
             if (ImGui::Button("Exit", ImVec2(-1, 0)))
             {
                 Engine::Window::SetClose(Engine::Window::GetWin(), true);
+            }
+
+            if (Engine::Saves::IsLessonMode() && !Engine::Saves::gCurrentDocument.steps.empty())
+            {
+                ImGuiViewport *vp = ImGui::GetMainViewport();
+
+                ImVec2 winSize(170.0f, 70.0f);
+                ImVec2 pos(
+                    vp->WorkPos.x + vp->WorkSize.x - winSize.x - 16.0f,
+                    vp->WorkPos.y + vp->WorkSize.y - winSize.y - 16.0f);
+
+                ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
+                ImGui::SetNextWindowSize(winSize, ImGuiCond_Always);
+
+                ImGuiWindowFlags navFlags =
+                    ImGuiWindowFlags_NoResize |
+                    ImGuiWindowFlags_NoMove |
+                    ImGuiWindowFlags_NoCollapse |
+                    ImGuiWindowFlags_NoScrollbar |
+                    ImGuiWindowFlags_NoTitleBar;
+
+                ImGui::Begin("LessonNav", nullptr, navFlags);
+
+                if (ImGui::ArrowButton("##lesson_prev", ImGuiDir_Left))
+                {
+                    Engine::Saves::PrevLessonStep();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::ArrowButton("##lesson_next", ImGuiDir_Right))
+                {
+                    Engine::Saves::NextLessonStep();
+                }
+
+                ImGui::Separator();
+                ImGui::Text(
+                    "Step %d / %d",
+                    Engine::Saves::gCurrentDocument.currentStep + 1,
+                    (int)Engine::Saves::gCurrentDocument.steps.size());
+
+                ImGui::End();
             }
 
             ImGui::PopStyleColor();
