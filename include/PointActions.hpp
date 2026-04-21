@@ -101,6 +101,7 @@ namespace Engine
             const glm::mat4 &view,
             const glm::mat4 &proj,
             int w, int h);
+        static void ResetSceneNames();
     };
 
     inline std::string GetPointLabel(int i)

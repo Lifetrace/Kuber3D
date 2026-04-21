@@ -29,6 +29,7 @@ src/VectorMath.cpp
 src/PointActions.cpp
 src/Operations.cpp
 src/Figures.cpp
+src/Saves.cpp
 )
 
 if (MINGW)

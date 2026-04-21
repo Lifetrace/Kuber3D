@@ -300,3 +300,13 @@ void Engine::PointActions::DrawPointLabels(
         dl->AddText(ImVec2(p.x + off.x, p.y + off.y), col, label.c_str());
     }
 }
+
+void Engine::PointActions::ResetSceneNames()
+{
+    pointNames.clear();
+    lineNamesByKey.clear();
+
+    gPendingLine = PendingLineUI{};
+    gPendingPoint = PendingPointUI{};
+    gRename = PendingRenameUI{};
+}

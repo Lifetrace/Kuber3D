@@ -70,6 +70,8 @@ bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_wi
 #include "VectorMath.hpp"
 #include "PointActions.hpp"
 #include "Movement.hpp"
+#include "Saves.hpp"
+
 #include "imgui.h"
 
 #include "imgui_impl_glfw.h"
@@ -147,18 +149,18 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
-    ImFont *font = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
-    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
+    ImFont *font = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
+    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
     // io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
     bool show_demo_window = false;
 
-    Engine::Shader *shaderBase = Engine::load_shader("../../assets/shaders/basic.vert", "../../assets/shaders/basic.frag");
+    Engine::Shader *shaderBase = Engine::load_shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
     if (!shaderBase)
         return -1;
 
-    Engine::Shader *shaderLines = Engine::load_shader("../../assets/shaders/line.vert", "../../assets/shaders/line.frag", "../../assets/shaders/line.geom");
+    Engine::Shader *shaderLines = Engine::load_shader("assets/shaders/line.vert", "assets/shaders/line.frag", "assets/shaders/line.geom");
     if (!shaderLines)
         return -1;
 
@@ -615,16 +617,42 @@ int main()
             ImGui::SetItemTooltip("F11");
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
             if (ImGui::Button("Clean", ImVec2(-1, 0)))
             {
                 if (IsEditMode)
                 {
+                    Engine::Selecting::ResetSelection();
+                    Engine::PointActions::ResetSceneNames();
                     Engine::Buffers::DeleteAll();
+                    angles.clear();
+                    targetH = cam.target;
                 }
             }
 
             ImGui::PopStyleColor();
             ImGui::SetItemTooltip("Tap to delete all points (need to be in edit mode)");
+
+            if (ImGui::Button("Save", ImVec2(-1, 0)))
+            {
+                std::string path = Engine::Saves::ShowSaveDialog();
+                if (!path.empty())
+                {
+                    Engine::Saves::SaveSceneToFile(path);
+                }
+            }
+
+            ImGui::SetItemTooltip("Click to Save this scene as the file (in *.kub format)");
+            
+            if (ImGui::Button("Open", ImVec2(-1, 0)))
+            {
+                std::string path = Engine::Saves::ShowOpenDialog();
+                if (!path.empty())
+                {
+                    Engine::Saves::LoadSceneFromFile(path);
+                }
+            }
+            ImGui::SetItemTooltip("Click to Open the scene (in *.kub format)");
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
