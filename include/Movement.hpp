@@ -7,29 +7,26 @@ namespace Engine
 {
     class Movement
     {
-        static inline bool IsEnable;
-
-        static inline std::vector<int> PointsAbleToMove;
-
-        static inline glm::vec3 Axe;
-
-        static inline glm::vec3 ToCamp[2];
-
     public:
-        void SetAxe(glm::vec3 Axe)
-        {
-            this->Axe = glm::normalize(Axe);
-        }
+        static inline bool active = false;
 
-        glm::vec3 GetAxe()
-        {
-            return this->Axe;
-        }
+        static inline std::vector<int> pointIds;
+        static inline std::vector<glm::vec3> startPositions;
 
-        void Init(std::vector<int> points, glm::vec3 Camps[2]);
+        static inline glm::vec3 axisOrigin{0.0f, 0.0f, 0.0f};
+        static inline glm::vec3 axisDir{1.0f, 0.0f, 0.0f};
 
-        void MoveTo(glm::vec3 A);
+        static inline float startT = 0.0f;
 
-        void DestroyMovement();
+        static void Begin(const std::vector<int>& ids, const glm::vec3& a, const glm::vec3& b);
+        static void PreviewTo(const glm::vec3& worldPoint);
+        static void Apply();
+        static void Cancel();
+        static void Reset();
+
+        static bool IsActive() { return active; }
+
+    private:
+        static float ProjectT(const glm::vec3& p);
     };
 }

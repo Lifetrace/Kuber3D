@@ -66,13 +66,10 @@ bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_wi
 #include "Angle.hpp"
 #include "Operations.hpp"
 #include "Figures.hpp"
-
 #include "Selecting.hpp"
-
 #include "VectorMath.hpp"
-
 #include "PointActions.hpp"
-
+#include "Movement.hpp"
 #include "imgui.h"
 
 #include "imgui_impl_glfw.h"
@@ -225,152 +222,217 @@ int main()
         glViewport(0, 0, w, h);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        const bool movementActive = Engine::Movement::IsActive();
+
         if (!blockHotkeys)
         {
-            if (Engine::Events::clicked(GLFW_MOUSE_BUTTON_LEFT))
-            {
-                cam.yaw += Engine::Events::deltaX * 0.007f;
-                cam.pitch -= Engine::Events::deltaY * 0.007f;
-                cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
-            }
 
-            if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && Engine::Selecting::selectedOrder.size() == 4)
+            if (movementActive)
             {
-                Engine::Operations::PerpToPlane();
-            }
+                glm::vec2 ndc = Engine::Events::MouseToNDC(Engine::Events::x, Engine::Events::y, w, h);
+                Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, cam.proj((float)w / (float)h), cam.view());
 
-            if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode)
-            {
-                if (Engine::Selecting::selectedOrder.size() != 3)
+                glm::vec3 viewDir = cam.position() - Engine::Movement::axisOrigin;
+
+                if (glm::length(viewDir) > 1e-6f)
                 {
-                    std::cout << "Err: select exactly 3 points for P\n";
-                }
-                else
-                {
-                    int i0 = Engine::Selecting::selectedOrder[0];
-                    int i1 = Engine::Selecting::selectedOrder[1];
-                    int i2 = Engine::Selecting::selectedOrder[2];
+                    viewDir = glm::normalize(viewDir);
 
-                    glm::vec3 A = Engine::Buffers::positions[i0];
-                    glm::vec3 B = Engine::Buffers::positions[i1];
-                    glm::vec3 C = Engine::Buffers::positions[i2];
+                    glm::vec3 side = glm::cross(viewDir, Engine::Movement::axisDir);
 
-                    glm::vec3 n = glm::cross(B - A, C - A);
-                    float nn = glm::length(n);
-                    if (nn < 1e-6f)
+                    if (glm::length(side) > 1e-6f)
                     {
-                        std::cout << "Err: degenerate plane\n";
-                    }
-                    else
-                    {
-                        n /= nn;
+                        side = glm::normalize(side);
 
-                        double mx = Engine::Events::x;
-                        double my = Engine::Events::y;
-
-                        glm::mat4 view = cam.view();
-                        glm::mat4 proj = cam.proj((float)w / (float)h);
-
-                        glm::vec2 ndc = Engine::MouseToNDC(mx, my, w, h);
-                        Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, proj, view);
-
-                        glm::vec3 hit;
-                        if (Engine::RayPlane(ray.origin, ray.dir, A, n, hit))
+                        glm::vec3 planeNormal = glm::cross(Engine::Movement::axisDir, side);
+                        if (glm::length(planeNormal) > 1e-6f)
                         {
-                            Engine::PointActions::RequestPointCreate(hit, Engine::PointActions::PendingPointAction::JustAdd, "P");
+                            planeNormal = glm::normalize(planeNormal);
+
+                            glm::vec3 hit;
+                            if (Engine::RayPlane(ray.origin, ray.dir, Engine::Movement::axisOrigin, planeNormal, hit))
+                            {
+                                Engine::Movement::PreviewTo(hit);
+                            }
                         }
                     }
                 }
-            }
 
-            if (Engine::Events::jPressed(GLFW_KEY_V) && IsEditMode && Engine::Selecting::selectedOrder.size() == 1)
-            {
-                int idx = Engine::Selecting::selectedOrder[0];
-                targetH = Engine::Buffers::positions[idx];
-            }
-
-            // DeletePoints
-            if (Engine::Events::jPressed(GLFW_KEY_DELETE) && IsEditMode)
-            {
-                Engine::Selecting::DelAllSelected();
-            }
-
-            // ConnectPoints
-            if (Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && Engine::Selecting::selectedOrder.size() == 2)
-            {
-                int a = Engine::Selecting::selectedOrder[0];
-                int b = Engine::Selecting::selectedOrder[1];
-
-                if (Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL))
+                if (Engine::Events::jPressed(GLFW_KEY_ESCAPE))
                 {
-                    Engine::Buffers::DisConnectPointsLine(a, b);
-                    Engine::PointActions::lineNamesByKey.erase(Engine::PointActions::LineKey(a, b));
-                    Engine::Buffers::Update();
+                    Engine::Movement::Cancel();
                 }
-                else
-                {
-                    Engine::Buffers::ConnectPointsLine(a, b);
-                    Engine::Buffers::Update();
 
-                    int linesCount = (int)Engine::Buffers::lineIndices.size() / 2;
-                    std::string def = std::to_string(linesCount);
-                    Engine::PointActions::RequestLineLabel(a, b, def.c_str());
+                if (Engine::Events::jclicked(GLFW_MOUSE_BUTTON_RIGHT))
+                {
+                    Engine::Movement::Apply();
                 }
             }
-            if (Engine::Events::jPressed(GLFW_KEY_N) && IsEditMode)
+
+            else if (!blockHotkeys)
             {
-                if (Engine::Selecting::selectedOrder.size() == 1)
+                if (Engine::Events::clicked(GLFW_MOUSE_BUTTON_LEFT))
                 {
-                    int p = Engine::Selecting::selectedOrder[0];
-
-                    Engine::PointActions::pointNames.resize(Engine::Buffers::positions.size());
-
-                    std::string cur = (p >= 0 && p < (int)Engine::PointActions::pointNames.size()) ? Engine::PointActions::pointNames[p] : "";
-                    if (cur.empty())
-                        cur = Engine::GetPointLabel(p);
-
-                    Engine::PointActions::RequestRenamePoint(p, cur);
+                    cam.yaw += Engine::Events::deltaX * 0.007f;
+                    cam.pitch -= Engine::Events::deltaY * 0.007f;
+                    cam.pitch = glm::clamp(cam.pitch, -1.3f, 1.3f);
                 }
-                // rename line
-                else if (Engine::Selecting::selectedOrder.size() == 2)
+
+                if (Engine::Events::jPressed(GLFW_KEY_M) && IsEditMode)
+                {
+                    auto order = Engine::Selecting::selectedOrder;
+
+                    if (order.size() >= 3)
+                    {
+                        int axisA = order[order.size() - 2];
+                        int axisB = order[order.size() - 1];
+
+                        std::vector<int> idsToMove(order.begin(), order.end() - 2);
+
+                        glm::vec3 A = Engine::Buffers::positions[axisA];
+                        glm::vec3 B = Engine::Buffers::positions[axisB];
+
+                        Engine::Movement::Begin(idsToMove, A, B);
+                    }
+                }
+
+                if (Engine::Events::jPressed(GLFW_KEY_R) && IsEditMode && Engine::Selecting::selectedOrder.size() == 4)
+                {
+                    Engine::Operations::PerpToPlane();
+                }
+
+                if (Engine::Events::jPressed(GLFW_KEY_P) && IsEditMode)
+                {
+                    if (Engine::Selecting::selectedOrder.size() != 3)
+                    {
+                        std::cout << "Err: select exactly 3 points for P\n";
+                    }
+                    else
+                    {
+                        int i0 = Engine::Selecting::selectedOrder[0];
+                        int i1 = Engine::Selecting::selectedOrder[1];
+                        int i2 = Engine::Selecting::selectedOrder[2];
+
+                        glm::vec3 A = Engine::Buffers::positions[i0];
+                        glm::vec3 B = Engine::Buffers::positions[i1];
+                        glm::vec3 C = Engine::Buffers::positions[i2];
+
+                        glm::vec3 n = glm::cross(B - A, C - A);
+                        float nn = glm::length(n);
+                        if (nn < 1e-6f)
+                        {
+                            std::cout << "Err: degenerate plane\n";
+                        }
+                        else
+                        {
+                            n /= nn;
+
+                            double mx = Engine::Events::x;
+                            double my = Engine::Events::y;
+
+                            glm::mat4 view = cam.view();
+                            glm::mat4 proj = cam.proj((float)w / (float)h);
+
+                            glm::vec2 ndc = Engine::MouseToNDC(mx, my, w, h);
+                            Engine::Ray ray = Engine::MakeRayFromMouseNDC(ndc, proj, view);
+
+                            glm::vec3 hit;
+                            if (Engine::RayPlane(ray.origin, ray.dir, A, n, hit))
+                            {
+                                Engine::PointActions::RequestPointCreate(hit, Engine::PointActions::PendingPointAction::JustAdd, "P");
+                            }
+                        }
+                    }
+                }
+
+                if (Engine::Events::jPressed(GLFW_KEY_V) && IsEditMode && Engine::Selecting::selectedOrder.size() == 1)
+                {
+                    int idx = Engine::Selecting::selectedOrder[0];
+                    targetH = Engine::Buffers::positions[idx];
+                }
+
+                // DeletePoints
+                if (Engine::Events::jPressed(GLFW_KEY_DELETE) && IsEditMode)
+                {
+                    Engine::Selecting::DelAllSelected();
+                }
+
+                // ConnectPoints
+                if (Engine::Events::jPressed(GLFW_KEY_J) && IsEditMode && Engine::Selecting::selectedOrder.size() == 2)
                 {
                     int a = Engine::Selecting::selectedOrder[0];
                     int b = Engine::Selecting::selectedOrder[1];
 
-                    if (HasLineBetween(a, b))
+                    if (Engine::Events::Pressed(GLFW_KEY_LEFT_CONTROL))
                     {
-                        uint64_t key = Engine::PointActions::LineKey(a, b);
+                        Engine::Buffers::DisConnectPointsLine(a, b);
+                        Engine::PointActions::lineNamesByKey.erase(Engine::PointActions::LineKey(a, b));
+                        Engine::Buffers::Update();
+                    }
+                    else
+                    {
+                        Engine::Buffers::ConnectPointsLine(a, b);
+                        Engine::Buffers::Update();
 
-                        std::string cur = "";
-                        auto it = Engine::PointActions::lineNamesByKey.find(key);
-                        if (it != Engine::PointActions::lineNamesByKey.end())
-                            cur = it->second;
+                        int linesCount = (int)Engine::Buffers::lineIndices.size() / 2;
+                        std::string def = std::to_string(linesCount);
+                        Engine::PointActions::RequestLineLabel(a, b, def.c_str());
+                    }
+                }
+                if (Engine::Events::jPressed(GLFW_KEY_N) && IsEditMode)
+                {
+                    if (Engine::Selecting::selectedOrder.size() == 1)
+                    {
+                        int p = Engine::Selecting::selectedOrder[0];
 
-                        Engine::PointActions::RequestRenameLine(a, b, cur);
+                        Engine::PointActions::pointNames.resize(Engine::Buffers::positions.size());
+
+                        std::string cur = (p >= 0 && p < (int)Engine::PointActions::pointNames.size()) ? Engine::PointActions::pointNames[p] : "";
+                        if (cur.empty())
+                            cur = Engine::GetPointLabel(p);
+
+                        Engine::PointActions::RequestRenamePoint(p, cur);
+                    }
+                    // rename line
+                    else if (Engine::Selecting::selectedOrder.size() == 2)
+                    {
+                        int a = Engine::Selecting::selectedOrder[0];
+                        int b = Engine::Selecting::selectedOrder[1];
+
+                        if (HasLineBetween(a, b))
+                        {
+                            uint64_t key = Engine::PointActions::LineKey(a, b);
+
+                            std::string cur = "";
+                            auto it = Engine::PointActions::lineNamesByKey.find(key);
+                            if (it != Engine::PointActions::lineNamesByKey.end())
+                                cur = it->second;
+
+                            Engine::PointActions::RequestRenameLine(a, b, cur);
+                        }
+                    }
+                }
+                // Cutting
+                if (Engine::Events::jPressed(GLFW_KEY_S))
+                {
+                    SetSplit();
+                    IsEditMode = false;
+                }
+
+                // Tab
+                if (Engine::Events::jPressed(GLFW_KEY_TAB))
+                {
+                    SetEditMode();
+                }
+
+                if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode && Engine::Selecting::selectedOrder.size() == 4)
+                {
+                    if (!Engine::Operations::ExtendUsingCutLine())
+                    {
+                        std::cout << "Err: ";
                     }
                 }
             }
-            // Cutting
-            if (Engine::Events::jPressed(GLFW_KEY_S))
-            {
-                SetSplit();
-                IsEditMode = false;
-            }
-
-            // Tab
-            if (Engine::Events::jPressed(GLFW_KEY_TAB))
-            {
-                SetEditMode();
-            }
-
-            if (Engine::Events::jPressed(GLFW_KEY_G) && IsEditMode && Engine::Selecting::selectedOrder.size() == 4)
-            {
-                if (!Engine::Operations::ExtendUsingCutLine())
-                {
-                    std::cout << "Err: ";
-                }
-            }
-
             // if (Engine::Events::jPressed(GLFW_KEY_A) && IsEditMode && selectedOrder.size() == 3)
             // {
             //     Engine::Angle ang(selectedOrder[0], selectedOrder[1], selectedOrder[2]);
@@ -675,7 +737,7 @@ int main()
 
             ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-            
+
             if (ImGui::Button("Change theme", ImVec2(-1, 0)))
             {
                 Engine::Style::Theme = !Engine::Style::Theme;
@@ -695,7 +757,7 @@ int main()
             {
                 Engine::Window::SetClose(Engine::Window::GetWin(), true);
             }
-            
+
             ImGui::PopStyleColor();
             ImGui::End();
         }

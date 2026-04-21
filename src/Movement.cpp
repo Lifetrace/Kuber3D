@@ -2,33 +2,84 @@
 
 #include "Buffers.hpp"
 
-void Engine::Movement::Init(std::vector<int> points, glm::vec3 Camps[2])
+float Engine::Movement::ProjectT(const glm::vec3& p)
 {
-    IsEnable = true;
+    return glm::dot(p - axisOrigin, axisDir);
+}
 
-    for (int x : points)
+void Engine::Movement::PreviewTo(const glm::vec3& worldPoint)
+{
+    if (!active) return;
+    if (pointIds.size() != startPositions.size()) return;
+
+    float currentT = ProjectT(worldPoint);
+    float delta = currentT - startT;
+
+    for (int i = 0; i < (int)pointIds.size(); ++i)
     {
-        PointsAbleToMove.push_back(x);
+        int id = pointIds[i];
+        if (id < 0 || id >= (int)Engine::Buffers::positions.size()) continue;
+
+        Engine::Buffers::positions[id] = startPositions[i] + axisDir * delta;
     }
 
-    ToCamp[0] = Camps[0];
-    ToCamp[1] = Camps[1];
-
-    Axe = Camps[1] - Camps[0];
+    Engine::Buffers::Update();
 }
 
-void Engine::Movement::DestroyMovement()
+void Engine::Movement::Begin(const std::vector<int>& ids, const glm::vec3& a, const glm::vec3& b)
 {
-    IsEnable = false;
+    Reset();
 
-    PointsAbleToMove.clear();
+    if (ids.empty()) return;
 
-    Axe = glm::vec3(0.0f, 0.0f, 0.0f);
-    ToCamp[0] = glm::vec3(0.0f, 0.0f, 0.0f);
-    ToCamp[1] = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 dir = b - a;
+    if (glm::length(dir) < 1e-6f) return;
+
+    active = true;
+    pointIds = ids;
+    axisOrigin = a;
+    axisDir = glm::normalize(dir);
+
+    startPositions.reserve(ids.size());
+    for (int id : ids)
+    {
+        if (id >= 0 && id < (int)Engine::Buffers::positions.size())
+            startPositions.push_back(Engine::Buffers::positions[id]);
+    }
+
+    if (!startPositions.empty())
+        startT = ProjectT(startPositions[0]);
 }
 
-void Engine::Movement::MoveTo(glm::vec3 A)
+void Engine::Movement::Cancel()
 {
-    
+    if (!active) return;
+    if (pointIds.size() == startPositions.size())
+    {
+        for (int i = 0; i < (int)pointIds.size(); ++i)
+        {
+            int id = pointIds[i];
+            if (id >= 0 && id < (int)Engine::Buffers::positions.size())
+                Engine::Buffers::positions[id] = startPositions[i];
+        }
+
+        Engine::Buffers::Update();
+    }
+
+    Reset();
+}
+
+void Engine::Movement::Apply()
+{
+    Reset();
+}
+
+void Engine::Movement::Reset()
+{
+    active = false;
+    pointIds.clear();
+    startPositions.clear();
+    axisOrigin = glm::vec3(0.0f);
+    axisDir = glm::vec3(1.0f, 0.0f, 0.0f);
+    startT = 0.0f;
 }
