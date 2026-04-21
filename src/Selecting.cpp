@@ -1,9 +1,9 @@
-#pragma once
-
 #include "Buffers.hpp"
 #include "Selecting.hpp"
 
 #include "VectorMath.hpp"
+
+#include "PointActions.hpp"
 
 #include <string>
 
@@ -116,14 +116,14 @@ void Engine::Selecting::DelAllSelected()
     {
         if (!removed[i])
         {
-            if (i < (int)pointNames.size())
-                newNames.push_back(pointNames[i]);
+            if (i < (int)Engine::PointActions::pointNames.size())
+                newNames.push_back(Engine::PointActions::pointNames[i]);
             else
                 newNames.push_back("");
         }
     }
 
-    pointNames = std::move(newNames);
+    Engine::PointActions::pointNames = std::move(newNames);
     Engine::Buffers::lineIndices = std::move(newLines);
 
     if ((int)Engine::Buffers::connectedPoints.size() == n)
@@ -169,4 +169,11 @@ void Engine::Selecting::ToggleSelect(int index)
         DeSelect(index);
     else
         Select(index);
+}
+
+void Engine::Selecting::ResetSelection()
+{
+    selectedPointsByColor.clear();
+    selectedPointsByCoords.clear();
+    selectedOrder.clear();
 }

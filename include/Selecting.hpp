@@ -11,8 +11,6 @@ namespace Engine
     class Selecting
     {
     public:
-        static inline std::vector<std::string> pointNames;
-
         // Selections
         static inline std::unordered_map<int, glm::vec4> selectedPointsByColor;
         static inline std::unordered_map<int, glm::vec3> selectedPointsByCoords;
@@ -23,5 +21,7 @@ namespace Engine
         static void DesAllSelected();
         static void DelAllSelected();
         static void ToggleSelect(int index);
+
+        static void ResetSelection();
     };
 }
