@@ -149,18 +149,18 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(Engine::Window::window, true);
     ImGui_ImplOpenGL3_Init();
 
-    ImFont *font = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
-    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
+    ImFont *font = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Reg.ttf", 16.0f);
+    ImFont *font_bold = io.Fonts->AddFontFromFileTTF("../../assets/fonts/PFBeauSansPro-Bold.ttf", 16.0f);
     // io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
     bool show_demo_window = false;
 
-    Engine::Shader *shaderBase = Engine::load_shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+    Engine::Shader *shaderBase = Engine::load_shader("../../assets/shaders/basic.vert", "../../assets/shaders/basic.frag");
     if (!shaderBase)
         return -1;
 
-    Engine::Shader *shaderLines = Engine::load_shader("assets/shaders/line.vert", "assets/shaders/line.frag", "assets/shaders/line.geom");
+    Engine::Shader *shaderLines = Engine::load_shader("../../assets/shaders/line.vert", "../../assets/shaders/line.frag", "../../assets/shaders/line.geom");
     if (!shaderLines)
         return -1;
 
@@ -633,8 +633,10 @@ int main()
                 }
             }
 
+            ImGui::PopStyleColor();
             ImGui::SetItemTooltip("Tap to delete all points (need to be in edit mode)");
 
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             if (ImGui::Button("Save", ImVec2(-1, 0)))
             {
                 std::string path = Engine::Saves::ShowSaveDialog();
@@ -644,8 +646,10 @@ int main()
                 }
             }
 
+            ImGui::PopStyleColor();
             ImGui::SetItemTooltip("Click to Save this scene as the file (in *.kub format)");
 
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             if (ImGui::Button("Open", ImVec2(-1, 0)))
             {
                 std::string path = Engine::Saves::ShowOpenDialog();
@@ -654,8 +658,6 @@ int main()
                     Engine::Saves::LoadDocumentFromFile(path);
                 }
             }
-
-            ImGui::SetItemTooltip("Click to Open the scene (in *.kub format)");
 
             if (ImGui::Button("New User Scene", ImVec2(-1, 0)))
             {
@@ -700,6 +702,7 @@ int main()
                 }
             }
             ImGui::PopStyleColor();
+            ImGui::SetItemTooltip("Click to Open the scene (in *.kub format)");
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -811,7 +814,6 @@ int main()
             // ImGui::Separator();
 
             ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
             if (ImGui::Button("Change theme", ImVec2(-1, 0)))
@@ -829,21 +831,9 @@ int main()
                 }
             }
 
-            
             if (ImGui::Button("Exit", ImVec2(-1, 0)))
             {
                 Engine::Window::SetClose(Engine::Window::GetWin(), true);
-            }
-            
-            ImGui::PopStyleColor();
-
-            if (Engine::Style::Theme == 0)
-            {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-            }
-            else
-            {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
             }
 
             if (Engine::Saves::IsLessonMode() && !Engine::Saves::gCurrentDocument.steps.empty())
